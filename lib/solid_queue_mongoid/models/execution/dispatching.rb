@@ -6,37 +6,16 @@ module SolidQueue
       extend ActiveSupport::Concern
 
       class_methods do
-        def dispatch_next_batch(batch_size, queues: "*", capabilities: {})
-          queue_names = resolve_queue_names(queues)
+        # Called by ScheduledExecution.dispatch_next_batch and FailedExecution.retry_all.
+        # Dispatches jobs by id: promotes them to ready/blocked, then removes the
+        # source execution records.
+        def dispatch_jobs(job_ids)
+          jobs = Job.where(:id.in => job_ids)
 
-          operations = []
-          batch_size.times do
-            execution = where(:queue_name.in => queue_names)
-              .order_by(priority: :asc, created_at: :asc)
-              .find_one_and_update(
-                { "$set" => { dispatched_at: Time.current } },
-                return_document: :after
-              )
-
-            operations << execution if execution
+          Job.dispatch_all(jobs).map(&:id).then do |dispatched_job_ids|
+            where(:job_id.in => dispatched_job_ids).delete_all
+            dispatched_job_ids.size
           end
-
-          operations.compact
-        end
-
-        private
-
-        def resolve_queue_names(queues)
-          return SolidQueue::Queue.all.pluck(:name) if queues == "*"
-
-          Array(queues).flat_map do |queue_pattern|
-            if queue_pattern.include?("*")
-              regex = /^#{Regexp.escape(queue_pattern).gsub('\*', '.*')}$/
-              SolidQueue::Queue.where(name: regex).pluck(:name)
-            else
-              queue_pattern
-            end
-          end.uniq
         end
       end
     end

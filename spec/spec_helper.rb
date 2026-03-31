@@ -8,67 +8,96 @@ if ENV["COVERAGE"]
   end
 end
 
-# Load dependencies before solid_queue_mongoid
 require "active_support/all"
 require "active_job"
 require "rails"
 require "mongoid"
-
 require "solid_queue_mongoid"
 
-# Auto-start MongoDB container for local testing if not already running
+# ---------------------------------------------------------------------------
+# MongoDB bootstrap helpers
+# ---------------------------------------------------------------------------
+
 def ensure_mongodb_running
-  return if ENV["CI"] # Skip in CI environment
+  return if ENV["CI"]
 
   mongodb_host = ENV.fetch("MONGODB_HOST", "localhost:27017")
-  return if mongodb_running?(mongodb_host)
+  if mongodb_running?(mongodb_host)
+    puts "MongoDB already running at #{mongodb_host}"
+    return
+  end
 
   puts "MongoDB not detected at #{mongodb_host}, starting Docker container..."
   start_mongodb_container
-  wait_for_mongodb(mongodb_host)
 end
 
 def mongodb_running?(host)
   require "socket"
   hostname, port = host.split(":")
-  Socket.tcp(hostname, port.to_i, connect_timeout: 1) { true }
+  Socket.tcp(hostname, port.to_i, connect_timeout: 2) { true }
 rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
   false
 end
 
-def start_mongodb_container
-  system("docker run -d --name solid_queue_test_mongo -p 27017:27017 mongo:7 --replSet rs0", out: File::NULL, err: File::NULL)
-  sleep 2 # Give container time to start
-  # Initialize replica set with explicit localhost hostname to avoid container hostname issues
-  init_config = '{_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]}'
-  system("docker exec solid_queue_test_mongo mongosh --eval 'rs.initiate(#{init_config})'", out: File::NULL, err: File::NULL)
-  sleep 2 # Wait for replica set to initialize
+def wait_for_port(host, timeout: 180)
+  hostname, port = host.split(":")
+  deadline = Time.now + timeout
+  loop do
+    begin
+      Socket.tcp(hostname, port.to_i, connect_timeout: 2) { return true }
+    rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
+      raise "MongoDB port not reachable at #{host} after #{timeout}s" if Time.now > deadline
+
+      sleep 2
+    end
+  end
 end
 
-def wait_for_mongodb(host, timeout: 60)
-  start_time = Time.now
-  until mongodb_running?(host)
-    raise "MongoDB failed to start within #{timeout} seconds" if Time.now - start_time > timeout
+def start_mongodb_container
+  system("docker rm -f solid_queue_test_mongo 2>/dev/null; true")
+  sleep 1
 
-    sleep 1
+  system(
+    "docker run -d --name solid_queue_test_mongo -p 27017:27017 mongo:8 --replSet rs0",
+    out: File::NULL, err: File::NULL
+  )
+
+  puts "Waiting for MongoDB port to open..."
+  wait_for_port("localhost:27017", timeout: 180)
+  sleep 2
+
+  puts "Initialising replica set..."
+  init_config = '{_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]}'
+  system("docker exec solid_queue_test_mongo mongosh --eval 'rs.initiate(#{init_config})'",
+         out: File::NULL, err: File::NULL)
+
+  deadline = Time.now + 60
+  loop do
+    state = `docker exec solid_queue_test_mongo mongosh --quiet --eval 'rs.status().myState' 2>/dev/null`.strip
+    break if state == "1"
+
+    raise "Replica set primary not elected within 60s" if Time.now > deadline
+
+    sleep 2
   end
-  puts "MongoDB is ready"
+
+  puts "MongoDB replica set ready."
 end
 
 ensure_mongodb_running
 
-RSpec.configure do |config|
-  # Enable flags like --only-failures and --next-failure
-  config.example_status_persistence_file_path = ".rspec_status"
+# ---------------------------------------------------------------------------
+# RSpec configuration
+# ---------------------------------------------------------------------------
 
-  # Disable RSpec exposing methods globally on `Module` and `main`
+RSpec.configure do |config|
+  config.example_status_persistence_file_path = ".rspec_status"
   config.disable_monkey_patching!
 
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
 
-  # Configure Mongoid for tests
   config.before(:suite) do
     Mongoid.configure do |mongoid_config|
       mongoid_config.clients.default = {
@@ -77,34 +106,26 @@ RSpec.configure do |config|
       }
     end
 
-    # Create indexes for all SolidQueue models
     puts "Creating indexes for SolidQueue models..."
     SolidQueueMongoid.create_indexes
     puts "Indexes created successfully!"
   end
 
-  # Clean database between tests
   config.before(:each) do
     Mongoid.purge!
+    SolidQueueMongoid.create_indexes
   end
 
-  # Recreate indexes after dropping collections
   config.after(:each) do
-    # Recreate indexes since collections may have been dropped
-    begin
-      SolidQueueMongoid.create_indexes
-    rescue => e
-      # Silently fail if indexes already exist
-    end
+    # no-op: indexes are created in before(:each)
   end
 
   config.after(:suite) do
     Mongoid.purge!
 
-    # Clean up Docker container if we started it
     unless ENV["CI"] || ENV["KEEP_MONGO"]
       system("docker stop solid_queue_test_mongo", out: File::NULL, err: File::NULL)
-      system("docker rm solid_queue_test_mongo", out: File::NULL, err: File::NULL)
+      system("docker rm   solid_queue_test_mongo", out: File::NULL, err: File::NULL)
     end
   end
 end

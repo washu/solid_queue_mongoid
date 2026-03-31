@@ -2,40 +2,70 @@
 
 module SolidQueue
   class Process < Record
-    field :hostname, type: String
-    field :pid, type: Integer
-    field :name, type: String
-    field :metadata, type: Hash
+    include Process::Executor
+    include Process::Prunable
+
+    field :kind,              type: String
+    field :name,              type: String
+    field :hostname,          type: String
+    field :pid,               type: Integer
+    field :supervisor_id,     type: BSON::ObjectId
+    field :metadata,          type: Hash,   default: {}
     field :last_heartbeat_at, type: Time
 
-    has_many :claimed_executions, class_name: "SolidQueue::ClaimedExecution", dependent: :destroy
+    belongs_to :supervisor, class_name: "SolidQueue::Process", optional: true,
+               inverse_of: :supervisees
+    has_many   :supervisees, class_name: "SolidQueue::Process",
+               inverse_of: :supervisor, foreign_key: :supervisor_id
 
     index({ hostname: 1, pid: 1 })
     index({ last_heartbeat_at: 1 })
+    index({ kind: 1 })
+    index({ supervisor_id: 1 }, { sparse: true })
 
     validates :hostname, :pid, presence: true
 
-    def self.register(name:, metadata: {})
-      create!(
-        hostname: Socket.gethostname,
-        pid: ::Process.pid,
-        name: name,
-        metadata: metadata,
-        last_heartbeat_at: Time.current
-      )
+    class << self
+      # Called by SolidQueue::Processes::Registrable#register.
+      # Must accept: kind:, name:, pid:, hostname:, and optional metadata:/supervisor:
+      def register(kind:, name:, pid:, hostname:, supervisor: nil, metadata: {}, **rest)
+        attrs = { kind: kind, name: name, pid: pid, hostname: hostname,
+                  supervisor: supervisor, metadata: (metadata || {}).merge(rest),
+                  last_heartbeat_at: Time.current }
+        SolidQueue.instrument(:register_process, kind: kind, name: name, pid: pid, hostname: hostname) do |payload|
+          create!(attrs).tap do |process|
+            payload[:process_id] = process.id
+          end
+        rescue => error
+          payload[:error] = error
+          raise
+        end
+      end
     end
 
     def heartbeat
+      # Reload to clear any stale state before updating heartbeat
+      reload rescue nil
       update!(last_heartbeat_at: Time.current)
     end
 
-    def deregister
-      ClaimedExecution.release_all_for_process(self)
-      destroy
+    def deregister(pruned: false)
+      SolidQueue.instrument(:deregister_process, process: self, pruned: pruned) do |payload|
+        destroy!
+
+        unless supervised? || pruned
+          supervisees.each(&:deregister)
+        end
+      rescue => error
+        payload[:error] = error
+        raise
+      end
     end
 
-    def self.prune_stale_processes(timeout: 5.minutes)
-      where(:last_heartbeat_at.lt => timeout.ago).destroy_all
-    end
+    private
+
+      def supervised?
+        supervisor_id.present?
+      end
   end
 end

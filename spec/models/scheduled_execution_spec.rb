@@ -14,13 +14,10 @@ RSpec.describe SolidQueue::ScheduledExecution do
 
   describe "creation" do
     it "creates a scheduled execution" do
-      execution = described_class.create!(
-        job: job,
-        queue_name: job.queue_name,
-        priority: job.priority,
-        scheduled_at: job.scheduled_at
-      )
+      # Job.create! with future scheduled_at auto-schedules via after_create
+      execution = job.scheduled_execution
 
+      expect(execution).to be_present
       expect(execution.job).to eq(job)
       expect(execution.scheduled_at).to be_within(1.second).of(1.hour.from_now)
     end
@@ -28,12 +25,7 @@ RSpec.describe SolidQueue::ScheduledExecution do
 
   describe "#dispatch" do
     it "does not dispatch future jobs" do
-      execution = described_class.create!(
-        job: job,
-        queue_name: job.queue_name,
-        priority: job.priority,
-        scheduled_at: 1.hour.from_now
-      )
+      execution = job.scheduled_execution
 
       execution.dispatch
 
@@ -48,6 +40,7 @@ RSpec.describe SolidQueue::ScheduledExecution do
         scheduled_at: 1.hour.ago
       )
 
+      # past_job auto-dispatched as ready; create a ScheduledExecution manually to test dispatch
       execution = described_class.create!(
         job: past_job,
         queue_name: past_job.queue_name,
@@ -64,7 +57,8 @@ RSpec.describe SolidQueue::ScheduledExecution do
 
   describe ".dispatch_due_batch" do
     before do
-      # Create past scheduled jobs
+      # Create past scheduled jobs — after_create dispatches them as ready (not scheduled).
+      # Manually create ScheduledExecutions to represent the scheduled queue state.
       2.times do |i|
         job = SolidQueue::Job.create!(
           queue_name: "default",
@@ -80,23 +74,16 @@ RSpec.describe SolidQueue::ScheduledExecution do
         )
       end
 
-      # Create future scheduled job
-      future_job = SolidQueue::Job.create!(
+      # Create future scheduled job — after_create auto-schedules it (1 ScheduledExecution created)
+      SolidQueue::Job.create!(
         queue_name: "default",
         class_name: "FutureJob",
         arguments: {},
         scheduled_at: 1.hour.from_now
       )
-      described_class.create!(
-        job: future_job,
-        queue_name: "default",
-        priority: 0,
-        scheduled_at: 1.hour.from_now
-      )
     end
 
     it "dispatches only due jobs" do
-      initial_count = described_class.count
       described_class.dispatch_due_batch(10)
 
       # Should have dispatched 2 past jobs, leaving 1 future job

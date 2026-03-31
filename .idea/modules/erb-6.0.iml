@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="RUBY_MODULE" version="4">
+  <component name="ModuleRunConfigurationManager">
+    <shared />
+  </component>
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$/../../vendor/bundle/ruby/3.3.0/gems/erb-6.0.2">
       <sourceFolder url="file://$MODULE_DIR$/../../vendor/bundle/ruby/3.3.0/gems/erb-6.0.2/features" isTestSource="true" />
@@ -8,6 +11,11 @@
     </content>
     <orderEntry type="jdk" jdkName="rbenv: 3.3.6" jdkType="RUBY_SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" scope="PROVIDED" name="bundler (v2.5.23, rbenv: 3.3.6) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="power_assert (v2.0.3, rbenv: 3.3.6) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rake (v13.1.0, rbenv: 3.3.6) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rdoc (v6.6.3.1, rbenv: 3.3.6) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="test-unit (v3.6.1, rbenv: 3.3.6) [gem]" level="application" />
   </component>
   <component name="RubyModuleProperties">
     <option name="autoCreated" value="true" />

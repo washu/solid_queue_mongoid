@@ -2,48 +2,60 @@
 
 module SolidQueue
   class RecurringExecution < Record
-    field :key, type: String
-    field :schedule, type: String
-    field :command, type: String
-    field :class_name, type: String
-    field :arguments, type: Hash
-    field :queue_name, type: String
-    field :priority, type: Integer, default: 0
-    field :last_run_at, type: Time
-    field :next_run_at, type: Time
+    class AlreadyRecorded < StandardError; end
 
-    has_many :jobs, class_name: "SolidQueue::Job", dependent: :nullify
+    field :task_key, type: String
+    field :run_at,   type: Time
 
-    index({ key: 1 }, { unique: true })
-    index({ next_run_at: 1 })
+    # optional: job may have been purged already
+    belongs_to :job, class_name: "SolidQueue::Job", optional: true
 
-    validates :key, :schedule, :class_name, :queue_name, presence: true
+    index({ task_key: 1, run_at: 1 }, { unique: true })
+    index({ job_id: 1 })
 
-    def self.dispatch_due_tasks
-      where(:next_run_at.lte => Time.current).each(&:dispatch)
-    end
+    # Clearable when the associated job no longer exists.
+    scope :clearable, -> {
+      existing_job_ids = SolidQueue::Job.all.pluck(:id)
+      where(:job_id.nin => existing_job_ids).or(job_id: nil)
+    }
 
-    def dispatch
-      job = Job.create!(
-        recurring_execution: self,
-        queue_name: queue_name,
-        class_name: class_name,
-        arguments: arguments || {},
-        priority: priority
-      )
+    class << self
+      # Called by RecurringTask#enqueue_and_record.
+      # Wraps the block; records the execution only if the job was successfully enqueued.
+      def record(task_key, run_at, &block)
+        active_job = block.call
 
-      job.dispatch
+        if active_job && active_job.successfully_enqueued?
+          create_or_insert!(
+            task_key: task_key,
+            run_at:   run_at,
+            job_id:   active_job.provider_job_id
+          )
+        end
 
-      update!(
-        last_run_at: Time.current,
-        next_run_at: calculate_next_run_at
-      )
-    end
+        active_job
+      end
 
-    def calculate_next_run_at
-      # This would use a cron parser in production
-      # For now, simple implementation
-      Time.current + 1.hour
+      # Atomic insert — raises AlreadyRecorded on duplicate (same task_key + run_at).
+      def create_or_insert!(task_key:, run_at:, job_id: nil)
+        create!(task_key: task_key, run_at: run_at, job_id: job_id)
+      rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure => e
+        raise AlreadyRecorded if duplicate_key_error?(e)
+        raise
+      end
+
+      def clear_in_batches(batch_size: 500)
+        loop do
+          deleted = clearable.limit(batch_size).delete_all
+          break if deleted == 0
+        end
+      end
+
+      private
+
+        def duplicate_key_error?(err)
+          err.message.to_s.include?("E11000") || err.message.to_s.include?("duplicate key")
+        end
     end
   end
 end

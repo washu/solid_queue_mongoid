@@ -3,100 +3,48 @@
 require "spec_helper"
 
 RSpec.describe SolidQueue::RecurringExecution do
-  describe "validations" do
-    it "requires key" do
-      execution = described_class.new(
-        schedule: "0 * * * *",
-        class_name: "TestJob",
-        queue_name: "default"
-      )
-      expect(execution).not_to be_valid
-      expect(execution.errors[:key]).to be_present
-    end
-
-    it "requires schedule" do
-      execution = described_class.new(
-        key: "test_job",
-        class_name: "TestJob",
-        queue_name: "default"
-      )
-      expect(execution).not_to be_valid
-      expect(execution.errors[:schedule]).to be_present
-    end
-
-    it "requires class_name" do
-      execution = described_class.new(
-        key: "test_job",
-        schedule: "0 * * * *",
-        queue_name: "default"
-      )
-      expect(execution).not_to be_valid
-      expect(execution.errors[:class_name]).to be_present
-    end
-
-    it "requires queue_name" do
-      execution = described_class.new(
-        key: "test_job",
-        schedule: "0 * * * *",
-        class_name: "TestJob"
-      )
-      expect(execution).not_to be_valid
-      expect(execution.errors[:queue_name]).to be_present
+  describe "AlreadyRecorded exception" do
+    it "is defined" do
+      expect(defined?(SolidQueue::RecurringExecution::AlreadyRecorded)).to eq("constant")
     end
   end
 
-  describe "#dispatch" do
-    it "creates a job and updates timestamps" do
-      execution = described_class.create!(
-        key: "test_job",
-        schedule: "0 * * * *",
-        class_name: "TestJob",
-        queue_name: "default",
-        arguments: { foo: "bar" },
-        priority: 5
+  describe ".record" do
+    it "calls the block and returns the result" do
+      dummy_job = double("active_job", successfully_enqueued?: false)
+      result = described_class.record("task_key", Time.current) { dummy_job }
+      expect(result).to eq(dummy_job)
+    end
+
+    it "creates a RecurringExecution document when the job is successfully enqueued" do
+      dummy_job = double("active_job",
+        successfully_enqueued?: true,
+        provider_job_id: BSON::ObjectId.new.to_s
       )
 
-      execution.dispatch
+      run_at = 1.hour.ago
+      described_class.record("my_task", run_at) { dummy_job }
 
-      job = SolidQueue::Job.where(recurring_execution: execution).first
-      expect(job).to be_present
-      expect(job.class_name).to eq("TestJob")
-      expect(job.queue_name).to eq("default")
-      expect(job.arguments).to eq({ "foo" => "bar" })
-      expect(job.priority).to eq(5)
+      doc = described_class.find_by(task_key: "my_task")
+      expect(doc).to be_present
+      expect(doc.run_at).to be_within(1.second).of(run_at)
+    end
 
-      execution.reload
-      expect(execution.last_run_at).to be_within(1.second).of(Time.current)
-      expect(execution.next_run_at).to be > Time.current
+    it "does not create a document when the job fails to enqueue" do
+      dummy_job = double("active_job", successfully_enqueued?: false)
+      described_class.record("my_task_fail", Time.current) { dummy_job }
+      expect(described_class.where(task_key: "my_task_fail").exists?).to be false
     end
   end
 
-  describe ".dispatch_due_tasks" do
-    before do
-      # Create due task
-      described_class.create!(
-        key: "due_job",
-        schedule: "0 * * * *",
-        class_name: "DueJob",
-        queue_name: "default",
-        next_run_at: 1.hour.ago
-      )
+  describe ".create_or_insert!" do
+    it "raises AlreadyRecorded on duplicate task_key + run_at" do
+      run_at = Time.current
+      described_class.create_or_insert!(task_key: "dup", run_at: run_at)
 
-      # Create future task
-      described_class.create!(
-        key: "future_job",
-        schedule: "0 * * * *",
-        class_name: "FutureJob",
-        queue_name: "default",
-        next_run_at: 1.hour.from_now
-      )
-    end
-
-    it "dispatches only due tasks" do
-      described_class.dispatch_due_tasks
-
-      expect(SolidQueue::Job.where(class_name: "DueJob").count).to eq(1)
-      expect(SolidQueue::Job.where(class_name: "FutureJob").count).to eq(0)
+      expect {
+        described_class.create_or_insert!(task_key: "dup", run_at: run_at)
+      }.to raise_error(SolidQueue::RecurringExecution::AlreadyRecorded)
     end
   end
 end

@@ -3,81 +3,80 @@
 require "spec_helper"
 
 RSpec.describe SolidQueue::ReadyExecution do
+  let(:process) do
+    SolidQueue::Process.create!(
+      hostname: "localhost", pid: 12345, name: "worker", kind: "Worker"
+    )
+  end
+
   let(:job) do
     SolidQueue::Job.create!(
-      queue_name: "default",
-      class_name: "TestJob",
-      arguments: {}
+      queue_name: "default", class_name: "TestJob", arguments: {}
     )
   end
 
   describe "creation" do
     it "creates a ready execution for a job" do
-      execution = described_class.create!(
-        job: job,
-        queue_name: job.queue_name,
-        priority: job.priority
-      )
+      # Job.create! auto-dispatches via after_create; just verify the record exists
+      execution = job.ready_execution
 
+      expect(execution).to be_present
       expect(execution.job).to eq(job)
       expect(execution.queue_name).to eq("default")
       expect(execution.priority).to eq(0)
     end
   end
 
-  describe ".claim_batch" do
-    let(:process) do
-      SolidQueue::Process.create!(
-        hostname: "localhost",
-        pid: 12345,
-        name: "worker"
-      )
-    end
-
+  describe ".claim" do
     before do
       3.times do |i|
-        job = SolidQueue::Job.create!(
-          queue_name: "default",
-          class_name: "TestJob#{i}",
-          arguments: {}
-        )
-        described_class.create!(
-          job: job,
-          queue_name: "default",
-          priority: i
+        SolidQueue::Job.create!(
+          queue_name: "default", class_name: "TestJob#{i}", arguments: {}, priority: i
         )
       end
     end
 
-    it "claims executions by priority" do
-      claimed = described_class.claim_batch(2, process: process)
+    it "claims executions atomically" do
+      claimed = described_class.claim("default", 2, process.id)
 
       expect(claimed.length).to be <= 2
-      # Jobs should be claimed in priority order (0, 1, 2)
-      expect(claimed.first.priority).to eq(0) if claimed.any?
+      expect(claimed).to all(be_a(SolidQueue::ClaimedExecution))
     end
 
-    it "respects batch size" do
-      claimed = described_class.claim_batch(1, process: process)
-
+    it "respects limit" do
+      claimed = described_class.claim("default", 1, process.id)
       expect(claimed.length).to be <= 1
     end
 
     it "filters by queue name" do
-      different_queue_job = SolidQueue::Job.create!(
-        queue_name: "other",
-        class_name: "OtherJob",
-        arguments: {}
-      )
-      described_class.create!(
-        job: different_queue_job,
-        queue_name: "other",
-        priority: 0
-      )
+      SolidQueue::Job.create!(queue_name: "other", class_name: "OtherJob", arguments: {})
 
-      claimed = described_class.claim_batch(10, process: process, queues: "default")
+      claimed = described_class.claim("default", 10, process.id)
+      expect(claimed.map(&:queue_name).uniq).to eq(["default"])
+    end
 
-      expect(claimed.all? { |e| e.queue_name == "default" }).to be true
+    it "supports wildcard queue claim" do
+      SolidQueue::Job.create!(queue_name: "other", class_name: "OtherJob", arguments: {})
+
+      claimed = described_class.claim("*", 10, process.id)
+      expect(claimed.size).to eq(4)
+    end
+  end
+
+  describe ".aggregated_count_across" do
+    before do
+      2.times do |i|
+        SolidQueue::Job.create!(queue_name: "default", class_name: "Job#{i}", arguments: {})
+      end
+      SolidQueue::Job.create!(queue_name: "critical", class_name: "CriticalJob", arguments: {})
+    end
+
+    it "counts across all queues with wildcard" do
+      expect(described_class.aggregated_count_across("*")).to eq(3)
+    end
+
+    it "counts only matching queues" do
+      expect(described_class.aggregated_count_across("default")).to eq(2)
     end
   end
 end

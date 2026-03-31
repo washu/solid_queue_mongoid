@@ -6,13 +6,8 @@ module SolidQueue
       extend ActiveSupport::Concern
 
       included do
-        field :recurring_execution_id, type: BSON::ObjectId
-
-        belongs_to :recurring_execution, class_name: "SolidQueue::RecurringExecution", optional: true
-      end
-
-      def recurring?
-        recurring_execution_id.present?
+        has_one :recurring_execution, class_name: "SolidQueue::RecurringExecution",
+                foreign_key: :job_id, dependent: :destroy
       end
     end
   end

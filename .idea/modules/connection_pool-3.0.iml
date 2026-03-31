@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="RUBY_MODULE" version="4">
+  <component name="ModuleRunConfigurationManager">
+    <shared />
+  </component>
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$/../../vendor/bundle/ruby/3.3.0/gems/connection_pool-3.0.2">
       <sourceFolder url="file://$MODULE_DIR$/../../vendor/bundle/ruby/3.3.0/gems/connection_pool-3.0.2/features" isTestSource="true" />

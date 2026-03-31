@@ -8,16 +8,18 @@ module SolidQueue
 
     validates :queue_name, presence: true, uniqueness: true
 
-    def self.pause_queue(queue_name)
-      find_or_create_by(queue_name: queue_name)
-    end
+    class << self
+      def pause_queue(queue_name)
+        create_or_find_by!(queue_name: queue_name)
+      end
 
-    def self.resume_queue(queue_name)
-      where(queue_name: queue_name).first&.destroy
-    end
+      def resume_queue(queue_name)
+        where(queue_name: queue_name).delete_all
+      end
 
-    def self.paused?(queue_name)
-      exists?(queue_name: queue_name)
+      def paused?(queue_name)
+        where(queue_name: queue_name).exists?
+      end
     end
   end
 end

@@ -7,7 +7,8 @@ RSpec.describe SolidQueue::ClaimedExecution do
     SolidQueue::Process.create!(
       hostname: "localhost",
       pid: 12345,
-      name: "worker"
+      name: "worker-test",
+      kind: "Worker"
     )
   end
 
@@ -35,7 +36,7 @@ RSpec.describe SolidQueue::ClaimedExecution do
   end
 
   describe "#release" do
-    it "destroys claimed execution and creates ready execution" do
+    it "destroys claimed execution and re-dispatches the job" do
       execution = described_class.create!(
         job: job,
         process: process,
@@ -46,31 +47,36 @@ RSpec.describe SolidQueue::ClaimedExecution do
       execution.release
 
       expect(described_class.where(id: execution.id).exists?).to be false
-      expect(job.reload.ready_execution).to be_present
+      # Job should be re-dispatched (ready or scheduled)
+      job.reload
+      expect(job.ready? || job.scheduled?).to be true
     end
   end
 
-  describe ".release_all_for_process" do
-    it "releases all executions for a process" do
+  describe ".release_all" do
+    it "releases all executions" do
       3.times do
-        job = SolidQueue::Job.create!(
-          queue_name: "default",
-          class_name: "TestJob",
-          arguments: {}
-        )
-        described_class.create!(
-          job: job,
-          process: process,
-          queue_name: "default",
-          priority: 0
-        )
+        j = SolidQueue::Job.create!(queue_name: "default", class_name: "TestJob", arguments: {})
+        described_class.create!(job: j, process: process, queue_name: "default", priority: 0)
       end
 
       expect(described_class.where(process: process).count).to eq(3)
 
-      described_class.release_all_for_process(process)
+      described_class.where(process_id: process.id).release_all
 
-      expect(described_class.where(process: process).count).to eq(0)
+      expect(described_class.where(process_id: process.id).count).to eq(0)
+    end
+  end
+
+  describe ".claiming" do
+    it "bulk-inserts claimed executions and yields them" do
+      j2 = SolidQueue::Job.create!(queue_name: "default", class_name: "TestJob2", arguments: {})
+
+      yielded = nil
+      described_class.claiming([job.id, j2.id], process.id) { |claimed| yielded = claimed }
+
+      expect(yielded.size).to eq(2)
+      expect(yielded.map(&:process_id).uniq).to eq([process.id])
     end
   end
 end

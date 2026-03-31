@@ -6,26 +6,46 @@ module SolidQueue
       extend ActiveSupport::Concern
 
       included do
-        field :retry_count, type: Integer, default: 0
-        field :max_retries, type: Integer
-
-        has_many :failed_executions, class_name: "SolidQueue::FailedExecution", dependent: :destroy
+        has_one :failed_execution, class_name: "SolidQueue::FailedExecution", dependent: :destroy
       end
 
-      def retry!
-        return unless can_retry?
-
-        increment(retry_count: 1)
-        failed_executions.last&.retry
+      def retry
+        failed_execution&.retry
       end
 
       def can_retry?
-        max_retries.nil? || retry_count < max_retries
+        max = read_attribute(:max_retries) || 0
+        count = read_attribute(:retry_count) || 0
+        count < max
       end
 
-      def retried?
-        retry_count > 0
+      def failed_with(exception)
+        FailedExecution.create!(job_id: id, exception: exception)
+      rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure => e
+        raise unless duplicate_key_error?(e)
+
+        existing = FailedExecution.find_by(job_id: id)
+        if existing
+          existing.exception = exception
+          existing.save!
+        else
+          retry
+        end
       end
+
+      def reset_execution_counters
+        if arguments.is_a?(Hash)
+          arguments["executions"] = 0
+          arguments["exception_executions"] = {}
+          save!
+        end
+      end
+
+      private
+
+        def duplicate_key_error?(err)
+          err.message.to_s.include?("E11000") || err.message.to_s.include?("duplicate key")
+        end
     end
   end
 end

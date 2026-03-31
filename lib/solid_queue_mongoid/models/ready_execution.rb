@@ -2,38 +2,68 @@
 
 module SolidQueue
   class ReadyExecution < Execution
-    def self.claim_batch(batch_size, process:, queues: "*")
-      queue_names = resolve_queue_names(queues)
+    assumes_attributes_from_job  # inherits queue_name and priority
 
-      claimed = []
-      batch_size.times do
-        # Use MongoDB's findOneAndDelete for atomic claim
-        # Sort by priority DESC (higher priority first), then created_at ASC (older first)
-        result = collection.find_one_and_delete(
-          { "queue_name" => { "$in" => queue_names } },
-          sort: { "priority" => -1, "created_at" => 1 }
-        )
+    scope :queued_as, ->(queue_name) { where(queue_name: queue_name) }
 
-        break unless result
+    index({ queue_name: 1, priority: 1, created_at: 1 })
 
-        # Create claimed execution for this job
-        begin
-          job = Job.find(result["job_id"])
-          claimed_execution = ClaimedExecution.create!(
-            job: job,
-            process: process,
-            queue_name: result["queue_name"],
-            priority: result["priority"]
-          )
-          claimed << claimed_execution
-        rescue => e
-          # If claimed execution creation fails, log error but continue
-          # The ready execution is already deleted, so we can't re-add it
-          Rails.logger.error("Failed to create claimed execution: #{e.message}") if defined?(Rails)
+    class << self
+      # Primary entry point called by SolidQueue::Worker.
+      # Atomically claims up to +limit+ executions from +queue_list+ for +process_id+.
+      def claim(queue_list, limit, process_id)
+        QueueSelector.new(queue_list, self).scoped_relations.flat_map do |queue_relation|
+          select_and_lock(queue_relation, process_id, limit).tap do |locked|
+            limit -= locked.size
+          end
         end
       end
 
-      claimed
+      # Integration spec compatible wrapper:
+      #   claim_batch(limit, process:, queues:)
+      def claim_batch(limit, process:, queues: "*")
+        claim(queues, limit, process.id)
+      end
+
+      # Called by Worker#all_work_completed?.
+      def aggregated_count_across(queue_list)
+        QueueSelector.new(queue_list, self).scoped_relations.sum(&:count)
+      end
+
+      private
+
+        # Atomically remove a ReadyExecution and create a ClaimedExecution.
+        # Uses findOneAndDelete for each slot to guarantee no double-claim.
+        def select_and_lock(queue_relation, process_id, limit)
+          return [] if limit <= 0
+
+          claimed = []
+          ClaimedExecution.claiming(
+            select_candidates(queue_relation, limit),
+            process_id
+          ) do |claimed_set|
+            claimed = claimed_set
+          end
+          claimed
+        end
+
+        def select_candidates(queue_relation, limit)
+          job_ids = []
+          limit.times do
+            raw = queue_relation.collection.find_one_and_delete(
+              queue_relation.selector,
+              sort: { "priority" => -1, "created_at" => 1 }
+            )
+            break unless raw
+            job_ids << raw["job_id"]
+          end
+          job_ids
+        end
+
+        def discard_jobs(job_ids)
+          Job.release_all_concurrency_locks(Job.where(:id.in => job_ids).to_a)
+          Job.where(:id.in => job_ids).delete_all
+        end
     end
   end
 end

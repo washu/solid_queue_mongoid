@@ -6,74 +6,137 @@ module SolidQueue
       extend ActiveSupport::Concern
 
       included do
-        field :finished_at, type: Time
+        include ConcurrencyControls, Schedulable, Retryable
 
-        has_one :ready_execution, class_name: "SolidQueue::ReadyExecution", dependent: :destroy
+
+        has_one :ready_execution,   class_name: "SolidQueue::ReadyExecution",   dependent: :destroy
         has_one :claimed_execution, class_name: "SolidQueue::ClaimedExecution", dependent: :destroy
 
+        after_create :prepare_for_execution
+
         scope :finished, -> { where(:finished_at.ne => nil) }
-        scope :pending, -> { where(finished_at: nil) }
+        scope :failed,   -> { where(:id.in => SolidQueue::FailedExecution.all.pluck(:job_id)) }
+        scope :pending,  -> { where(finished_at: nil) }
       end
 
-      def ready_to_execute?
-        ready_execution.present?
+      class_methods do
+        # Dispatch a collection of jobs, partitioned by schedule and concurrency.
+        def prepare_all_for_execution(jobs)
+          due, not_yet_due = jobs.partition(&:due?)
+          dispatch_all(due) + schedule_all(not_yet_due)
+        end
+
+        def dispatch_all(jobs)
+          with_concurrency_limits, without_concurrency_limits = jobs.partition(&:concurrency_limited?)
+
+          dispatch_all_at_once(without_concurrency_limits)
+          dispatch_all_one_by_one(with_concurrency_limits)
+
+          successfully_dispatched(jobs)
+        end
+
+        private
+
+          def dispatch_all_at_once(jobs)
+            ReadyExecution.create_all_from_jobs(jobs)
+          end
+
+          def dispatch_all_one_by_one(jobs)
+            jobs.each(&:dispatch)
+          end
+
+          def successfully_dispatched(jobs)
+            job_ids = jobs.map(&:id)
+            dispatched_and_ready(jobs) + dispatched_and_blocked(jobs)
+          end
+
+          def dispatched_and_ready(jobs)
+            job_ids = jobs.map(&:id)
+            where(:id.in => ReadyExecution.where(:job_id.in => job_ids).pluck(:job_id))
+          end
+
+          def dispatched_and_blocked(jobs)
+            job_ids = jobs.map(&:id)
+            where(:id.in => BlockedExecution.where(:job_id.in => job_ids).pluck(:job_id))
+          end
       end
 
-      def claimed?
-        claimed_execution.present?
+      # status helpers matching SolidQueue runtime expectations
+      %w[ ready claimed failed ].each do |status|
+        define_method("#{status}?") { public_send("#{status}_execution").present? }
+      end
+
+      def prepare_for_execution
+        if due?
+          dispatch
+        else
+          schedule
+        end
       end
 
       def dispatch
-        return if finished?
-        return unless acquire_concurrency_lock
-
-        if scheduled? && scheduled_at > Time.current
-          schedule(scheduled_at: scheduled_at)
+        if due?
+          if acquire_concurrency_lock
+            ready
+          else
+            handle_concurrency_conflict
+          end
         else
-          create_ready_execution!
+          schedule
         end
       end
 
-      def claim(process:)
-        return unless ready_execution
+      # Called by ClaimedExecution#release — bypasses the semaphore check.
+      def dispatch_bypassing_concurrency_limits
+        ready
+      end
 
-        transaction do
-          ready_execution.destroy
-          create_claimed_execution!(process: process)
+      def finished!
+        if SolidQueue.preserve_finished_jobs?
+          update(finished_at: Time.current)
+          # Clean up the claimed execution if still present (e.g. called directly
+          # outside of ClaimedExecution#finished which does its own destroy!).
+          claimed_execution&.destroy
+        else
+          destroy!
         end
       end
 
-      def finish
-        update(finished_at: Time.current)
-        release_concurrency_lock
-        claimed_execution&.destroy
+      alias_method :finish, :finished!
+
+      def finished?
+        finished_at.present?
       end
 
-      def fail_with_error(error)
-        FailedExecution.create_from_job!(self, error)
-        release_concurrency_lock
-        claimed_execution&.destroy
+      def status
+        if finished?
+          :finished
+        elsif (exec = execution)
+          exec.type
+        end
+      end
+
+      def discard
+        execution&.discard
       end
 
       private
 
-      def create_ready_execution!
-        ReadyExecution.create!(
-          job: self,
-          queue_name: queue_name,
-          priority: priority,
-          concurrency_key: concurrency_key
-        )
-      end
+        def ready
+          re = ReadyExecution.create_or_find_by!(job_id: id) do |r|
+            r.queue_name = queue_name
+            r.priority   = priority
+          end
+          re.persisted? ? re : ReadyExecution.where(job_id: id).first
+        rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure
+          ReadyExecution.where(job_id: id).first
+        end
 
-      def create_claimed_execution!(process:)
-        ClaimedExecution.create!(
-          job: self,
-          process: process,
-          queue_name: queue_name,
-          priority: priority
-        )
-      end
+        def execution
+          %w[ ready claimed failed ].reduce(nil) do |acc, status|
+            acc || public_send("#{status}_execution")
+          end
+        end
     end
   end
 end

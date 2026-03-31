@@ -2,34 +2,54 @@
 
 module SolidQueue
   class FailedExecution < Execution
-    field :error_class, type: String
-    field :error_message, type: String
-    field :backtrace, type: Array
-    field :failed_at, type: Time
+    include Dispatching
 
-    index({ failed_at: 1 })
+    field :error, type: Hash  # stores exception_class, message, backtrace
 
-    def self.create_from_job!(job, error)
-      create!(
-        job: job,
-        queue_name: job.queue_name,
-        priority: job.priority,
-        concurrency_key: job.concurrency_key,
-        error_class: error.class.name,
-        error_message: error.message,
-        backtrace: error.backtrace,
-        failed_at: Time.current
-      )
+    attr_accessor :exception
+
+    before_save :expand_error_details_from_exception, if: :exception
+
+    index({ created_at: 1 })
+
+    class << self
+      def retry_all(jobs)
+        SolidQueue.instrument(:retry_all, jobs_size: jobs.size) do |payload|
+          job_ids = jobs.map(&:id)
+          payload[:size] = dispatch_jobs(lock_all_from_jobs_ids(job_ids))
+        end
+      end
+
+      private
+
+        def lock_all_from_jobs_ids(job_ids)
+          where(:job_id.in => job_ids).pluck(:job_id)
+        end
     end
 
     def retry
-      destroy
-      job.create_ready_execution!
+      SolidQueue.instrument(:retry, job_id: job.id) do
+        job.reset_execution_counters
+        job.prepare_for_execution
+        destroy!
+      end
     end
 
-    def discard
-      destroy
-      job.update(finished_at: Time.current)
+    # Error attribute accessors matching SolidQueue API
+    %i[ exception_class message backtrace ].each do |attribute|
+      define_method(attribute) { error&.with_indifferent_access&.[](attribute.to_s) }
     end
+
+    private
+
+      def expand_error_details_from_exception
+        if exception
+          self.error = {
+            "exception_class" => exception.class.name,
+            "message"         => exception.message,
+            "backtrace"       => exception.backtrace
+          }
+        end
+      end
   end
 end
