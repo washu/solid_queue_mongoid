@@ -41,6 +41,9 @@ jobs:
           - ruby: '3.4'
             rails: '8.1'
 
+    env:
+      RAILS_VERSION: ${{ matrix.rails }}
+
     steps:
     - uses: actions/checkout@v3
 
@@ -48,12 +51,10 @@ jobs:
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
-        bundler-cache: true
+        bundler-cache: false
 
     - name: Install dependencies
       run: bundle install
-      env:
-        RAILS_VERSION: ${{ matrix.rails }}
 
     - name: Start MongoDB with Replica Set
       run: |

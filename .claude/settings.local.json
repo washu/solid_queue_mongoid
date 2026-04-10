@@ -25,7 +25,8 @@
       "WebFetch(domain:api.github.com)",
       "Bash(grep -E \"example|failure|FAILED|✓|·|F$|passed|failed\")",
       "Bash(gh run:*)",
-      "Bash(gh auth:*)"
+      "Bash(gh auth:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
