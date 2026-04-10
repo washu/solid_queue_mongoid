@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="0.2.0 commit, see README and CHANGELOG">
-      <change beforePath="$PROJECT_DIR$/.claude/settings.local.json" beforeDir="false" afterPath="$PROJECT_DIR$/.claude/settings.local.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.github/workflows/ci.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/ci.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules/docile-1.4.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/docile-1.4.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -181,7 +178,7 @@
       <workItem from="1772032095816" duration="7274000" />
       <workItem from="1774875815039" duration="26961000" />
       <workItem from="1775756584942" duration="17331000" />
-      <workItem from="1775842470364" duration="378000" />
+      <workItem from="1775842470364" duration="1002000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit udpate">
       <option name="closed" value="true" />
@@ -239,7 +236,39 @@
       <option name="project" value="LOCAL" />
       <updated>1775825725408</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="0.2.0 commit, see README and CHANGELOG">
+      <option name="closed" value="true" />
+      <created>1775842856878</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1775842856878</updated>
+    </task>
+    <task id="LOCAL-00009" summary="0.2.0 commit, see README and CHANGELOG">
+      <option name="closed" value="true" />
+      <created>1775843002306</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1775843002306</updated>
+    </task>
+    <task id="LOCAL-00010" summary="0.2.0 commit, see README and CHANGELOG">
+      <option name="closed" value="true" />
+      <created>1775843184405</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1775843184405</updated>
+    </task>
+    <task id="LOCAL-00011" summary="0.2.0 commit, see README and CHANGELOG">
+      <option name="closed" value="true" />
+      <created>1775843323123</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1775843323123</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
