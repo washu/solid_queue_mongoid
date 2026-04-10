@@ -1,5 +1,7 @@
 # SolidQueueMongoid
 
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+
 A MongoDB/Mongoid adapter for [SolidQueue](https://github.com/basecamp/solid_queue) that allows you to use MongoDB as the backend instead of ActiveRecord/PostgreSQL/MySQL.
 
 This gem provides a drop-in replacement for SolidQueue's ActiveRecord models, using Mongoid documents instead. All SolidQueue features are supported including job scheduling, concurrency controls, recurring tasks, and more.
