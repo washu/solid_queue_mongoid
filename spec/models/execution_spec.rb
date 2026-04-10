@@ -58,8 +58,8 @@ RSpec.describe SolidQueue::Execution do
 
   describe ".ordered scope" do
     it "orders by priority then job_id" do
-      job_low  = SolidQueue::Job.create!(queue_name: "default", class_name: "A", arguments: {}, priority: 10)
-      job_high = SolidQueue::Job.create!(queue_name: "default", class_name: "B", arguments: {}, priority: 1)
+      SolidQueue::Job.create!(queue_name: "default", class_name: "A", arguments: {}, priority: 10)
+      SolidQueue::Job.create!(queue_name: "default", class_name: "B", arguments: {}, priority: 1)
 
       ordered = SolidQueue::ReadyExecution.ordered.to_a
       priorities = ordered.map(&:priority)

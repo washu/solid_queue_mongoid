@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative "boot"
 
 require "rails"
@@ -7,7 +9,7 @@ require "action_controller/railtie"
 require "action_view/railtie"
 
 require "mongoid"
-require "solid_queue_mongoid"  # automatically requires solid_queue
+require "solid_queue_mongoid" # automatically requires solid_queue
 
 Bundler.require(*Rails.groups)
 

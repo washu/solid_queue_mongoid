@@ -34,7 +34,7 @@ module SolidQueue
           where(:job_id.in => job_ids).delete_all
           pending -= discarded
 
-          break if pending <= 0 || discarded == 0
+          break if pending <= 0 || discarded.zero?
         end
       end
 

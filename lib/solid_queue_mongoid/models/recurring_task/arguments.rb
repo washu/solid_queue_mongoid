@@ -27,4 +27,3 @@ module SolidQueue
     end
   end
 end
-

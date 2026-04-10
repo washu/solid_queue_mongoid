@@ -42,7 +42,7 @@ RSpec.describe SolidQueue::RecurringTask do
     it "updates tasks that already exist" do
       stub_const("NewJob", Class.new)
       described_class.create!(key: "existing", schedule: "0 * * * *",
-                               class_name: "MyJob", queue_name: "default")
+                              class_name: "MyJob", queue_name: "default")
       tasks = [described_class.new(key: "existing", schedule: "30 2 * * *",
                                    class_name: "NewJob", queue_name: "default", static: true)]
       described_class.create_or_update_all(tasks)
@@ -65,9 +65,9 @@ RSpec.describe SolidQueue::RecurringTask do
   describe ".static scope" do
     it "returns only static tasks" do
       described_class.create!(key: "static_t", schedule: "0 * * * *", class_name: "MyJob",
-                               queue_name: "default", static: true)
+                              queue_name: "default", static: true)
       described_class.create!(key: "dynamic_t", schedule: "0 * * * *", class_name: "MyJob",
-                               queue_name: "default", static: false)
+                              queue_name: "default", static: false)
 
       expect(described_class.static.count).to eq(1)
       expect(described_class.static.first.key).to eq("static_t")
@@ -77,9 +77,9 @@ RSpec.describe SolidQueue::RecurringTask do
   describe ".dynamic scope" do
     it "returns only dynamic tasks" do
       described_class.create!(key: "static_t2", schedule: "0 * * * *", class_name: "MyJob",
-                               queue_name: "default", static: true)
+                              queue_name: "default", static: true)
       described_class.create!(key: "dynamic_t2", schedule: "0 * * * *", class_name: "MyJob",
-                               queue_name: "default", static: false)
+                              queue_name: "default", static: false)
 
       expect(described_class.dynamic.count).to eq(1)
       expect(described_class.dynamic.first.key).to eq("dynamic_t2")
@@ -108,32 +108,32 @@ RSpec.describe SolidQueue::RecurringTask do
     end
 
     it "raises on invalid options" do
-      expect {
+      expect do
         described_class.create_dynamic_task("bad_dyn", schedule: "not-cron", class: "MyJob")
-      }.to raise_error(Mongoid::Errors::Validations)
+      end.to raise_error(Mongoid::Errors::Validations)
     end
   end
 
   describe ".delete_dynamic_task" do
     it "destroys a dynamic task by key" do
       described_class.create!(key: "to_delete", schedule: "0 * * * *", class_name: "MyJob",
-                               queue_name: "default", static: false)
+                              queue_name: "default", static: false)
       described_class.delete_dynamic_task("to_delete")
       expect(described_class.where(key: "to_delete").exists?).to be false
     end
 
     it "raises when the key does not exist" do
-      expect {
+      expect do
         described_class.delete_dynamic_task("nonexistent")
-      }.to raise_error(Mongoid::Errors::DocumentNotFound)
+      end.to raise_error(Mongoid::Errors::DocumentNotFound)
     end
 
     it "raises when the key belongs to a static task" do
       described_class.create!(key: "static_only", schedule: "0 * * * *", class_name: "MyJob",
-                               queue_name: "default", static: true)
-      expect {
+                              queue_name: "default", static: true)
+      expect do
         described_class.delete_dynamic_task("static_only")
-      }.to raise_error(Mongoid::Errors::DocumentNotFound)
+      end.to raise_error(Mongoid::Errors::DocumentNotFound)
     end
   end
 
@@ -148,7 +148,7 @@ RSpec.describe SolidQueue::RecurringTask do
   describe "#to_s" do
     it "includes class name and schedule" do
       task = described_class.new(key: "t", schedule: "0 * * * *",
-                                  class_name: "MyJob", arguments: [], queue_name: "default")
+                                 class_name: "MyJob", arguments: [], queue_name: "default")
       expect(task.to_s).to include("MyJob")
       expect(task.to_s).to include("0 * * * *")
     end
@@ -157,7 +157,7 @@ RSpec.describe SolidQueue::RecurringTask do
   describe "#attributes_for_upsert" do
     it "excludes _id, id, and key" do
       task = described_class.create!(key: "upsert_t", schedule: "0 * * * *",
-                                      class_name: "MyJob", queue_name: "default")
+                                     class_name: "MyJob", queue_name: "default")
       attrs = task.attributes_for_upsert
       expect(attrs.keys).not_to include("_id", "id", "key")
       expect(attrs["class_name"]).to eq("MyJob")
@@ -198,7 +198,7 @@ RSpec.describe SolidQueue::RecurringTask do
   describe "#last_enqueued_time" do
     let(:task) do
       described_class.create!(key: "last_enq", schedule: "0 * * * *",
-                               class_name: "MyJob", queue_name: "default")
+                              class_name: "MyJob", queue_name: "default")
     end
 
     it "returns nil when no recurring executions exist" do
@@ -233,19 +233,17 @@ RSpec.describe SolidQueue::RecurringTask do
     context "when using a non-solid_queue adapter" do
       let(:task) do
         described_class.new(key: "enq_task", schedule: "0 * * * *",
-                             class_name: "MyJob", queue_name: "default")
+                            class_name: "MyJob", queue_name: "default")
       end
 
       it "records enqueue_error in payload when job fails to enqueue" do
         fake_job = double("active_job",
-          successfully_enqueued?: false,
-          enqueue_error:          double(message: "queue full"),
-          job_id:                 nil
-        )
+                          successfully_enqueued?: false,
+                          enqueue_error: double(message: "queue full"),
+                          job_id: nil)
         fake_class = double("MyJob",
-          queue_adapter_name: "test",
-          new:                fake_job
-        )
+                            queue_adapter_name: "test",
+                            new: fake_job)
         allow(fake_job).to receive(:enqueue).and_return(fake_job)
         allow(task).to receive(:job_class).and_return(fake_class)
         allow(task).to receive(:using_solid_queue_adapter?).and_return(false)
@@ -260,7 +258,7 @@ RSpec.describe SolidQueue::RecurringTask do
     context "when AlreadyRecorded is raised" do
       let(:task) do
         described_class.new(key: "dup_task", schedule: "0 * * * *",
-                             class_name: "MyJob", queue_name: "default")
+                            class_name: "MyJob", queue_name: "default")
       end
 
       it "returns false and skips silently" do

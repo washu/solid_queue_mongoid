@@ -26,10 +26,12 @@ module SolidQueue
         super
       rescue Mongo::Error::OperationFailure => e
         raise unless e.message.to_s.include?("E11000") || e.message.to_s.include?("duplicate key")
-        job_id = attrs[:job_id] || (attrs[:job]&.id)
+
+        job_id = attrs[:job_id] || attrs[:job]&.id
         where(job_id: job_id).first || raise(e)
       rescue Mongoid::Errors::Validations => e
         return where(job_id: attrs[:job_id] || attrs[:job]&.id).first || raise(e) if uniqueness_only_error?(e.document)
+
         raise
       end
 
@@ -48,6 +50,7 @@ module SolidQueue
         count = 0
         scope.each do |execution|
           break if limit && count >= limit
+
           count += 1 if execution.release
         end
         count
@@ -58,7 +61,7 @@ module SolidQueue
       end
 
       def release_one(concurrency_key)
-        # Note: no outer Mongoid.transaction here — #release already wraps its work
+        # NOTE: no outer Mongoid.transaction here — #release already wraps its work
         # in a transaction. MongoDB does not support nested sessions, so wrapping
         # again would cause InvalidSessionNesting errors.
         execution = ordered.where(concurrency_key: concurrency_key).limit(1).first
@@ -85,7 +88,8 @@ module SolidQueue
     end
 
     def release
-      SolidQueue.instrument(:release_blocked, job_id: job.id, concurrency_key: concurrency_key, released: false) do |payload|
+      SolidQueue.instrument(:release_blocked, job_id: job.id, concurrency_key: concurrency_key,
+                                              released: false) do |payload|
         Mongoid.transaction do
           if acquire_concurrency_lock
             promote_to_ready

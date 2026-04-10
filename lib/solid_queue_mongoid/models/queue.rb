@@ -56,7 +56,7 @@ module SolidQueue
     def ==(other)
       name == (other.respond_to?(:name) ? other.name : other)
     end
-    alias_method :eql?, :==
+    alias eql? ==
 
     def hash
       name.hash

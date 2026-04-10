@@ -2,7 +2,7 @@
 
 namespace :solid_queue_mongoid do
   desc "Create MongoDB indexes for SolidQueue models"
-  task :create_indexes => :environment do
+  task create_indexes: :environment do
     require "solid_queue_mongoid"
 
     puts "Creating indexes for SolidQueue Mongoid models..."
@@ -10,7 +10,7 @@ namespace :solid_queue_mongoid do
   end
 
   desc "Remove MongoDB indexes for SolidQueue models"
-  task :remove_indexes => :environment do
+  task remove_indexes: :environment do
     require "solid_queue_mongoid"
 
     puts "Removing indexes for SolidQueue Mongoid models..."
@@ -18,7 +18,7 @@ namespace :solid_queue_mongoid do
   end
 
   desc "Show collection names for SolidQueue models"
-  task :show_collections => :environment do
+  task show_collections: :environment do
     require "solid_queue_mongoid"
 
     puts "\nSolidQueue Mongoid Collections:"

@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "spec_helper"
 
 RSpec.describe "Debug ScheduledExecution" do
@@ -6,7 +7,7 @@ RSpec.describe "Debug ScheduledExecution" do
     puts "\n--- Initial ---"
     puts "RE: #{SolidQueue::ReadyExecution.count}, SE: #{SolidQueue::ScheduledExecution.count}"
 
-    due_jobs = 5.times.map do |i|
+    5.times.map do |i|
       job = SolidQueue::Job.create!(
         queue_name: "default",
         class_name: "ScheduledJob",
@@ -20,7 +21,7 @@ RSpec.describe "Debug ScheduledExecution" do
     puts "--- After due jobs ---"
     puts "RE: #{SolidQueue::ReadyExecution.count}, SE: #{SolidQueue::ScheduledExecution.count}"
 
-    future_jobs = 5.times.map do |i|
+    5.times.map do |i|
       job = SolidQueue::Job.create!(
         queue_name: "default",
         class_name: "FutureJob",
@@ -46,7 +47,11 @@ RSpec.describe "Debug ScheduledExecution" do
     puts "--- After dispatch_due_batch ---"
     puts "RE: #{SolidQueue::ReadyExecution.count}, SE: #{SolidQueue::ScheduledExecution.count}"
     SolidQueue::ScheduledExecution.all.each do |se|
-      j = SolidQueue::Job.find(se.job_id) rescue nil
+      j = begin
+        SolidQueue::Job.find(se.job_id)
+      rescue StandardError
+        nil
+      end
       puts "  SE job_id=#{se.job_id} scheduled_at=#{j&.scheduled_at}"
     end
 
@@ -54,4 +59,3 @@ RSpec.describe "Debug ScheduledExecution" do
     expect(SolidQueue::ScheduledExecution.count).to eq(5)
   end
 end
-

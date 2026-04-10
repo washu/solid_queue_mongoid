@@ -10,7 +10,7 @@ RSpec.describe "Concurrency and Performance" do
   describe "concurrent job claiming" do
     it "prevents multiple processes from claiming the same job" do
       # Create 10 jobs in the ready queue
-      jobs = 10.times.map do |i|
+      10.times.map do |i|
         job = SolidQueue::Job.create!(
           queue_name: "default",
           class_name: "TestJob",
@@ -44,7 +44,7 @@ RSpec.describe "Concurrency and Performance" do
 
     it "respects queue priorities under concurrent load" do
       # Create jobs with different priorities
-      high_priority_jobs = 3.times.map do |i|
+      3.times.map do |i|
         job = SolidQueue::Job.create!(
           queue_name: "default",
           class_name: "HighPriorityJob",
@@ -55,7 +55,7 @@ RSpec.describe "Concurrency and Performance" do
         job
       end
 
-      low_priority_jobs = 3.times.map do |i|
+      3.times.map do |i|
         job = SolidQueue::Job.create!(
           queue_name: "default",
           class_name: "LowPriorityJob",
@@ -137,7 +137,7 @@ RSpec.describe "Concurrency and Performance" do
       )
 
       # Create multiple blocked executions
-      blocked_jobs = 3.times.map do |i|
+      3.times.map do |i|
         job = SolidQueue::Job.create!(
           queue_name: "default",
           class_name: "ResourceJob",
@@ -240,7 +240,7 @@ RSpec.describe "Concurrency and Performance" do
   describe "scheduled execution dispatching" do
     it "dispatches only due jobs under concurrent load" do
       # Create mix of due and future jobs
-      due_jobs = 5.times.map do |i|
+      5.times.map do |i|
         job = SolidQueue::Job.create!(
           queue_name: "default",
           class_name: "ScheduledJob",
@@ -251,7 +251,7 @@ RSpec.describe "Concurrency and Performance" do
         job
       end
 
-      future_jobs = 5.times.map do |i|
+      5.times.map do |i|
         job = SolidQueue::Job.create!(
           queue_name: "default",
           class_name: "FutureJob",
@@ -306,14 +306,14 @@ RSpec.describe "Concurrency and Performance" do
 
     it "handles stale process cleanup" do
       # Create stale processes (old heartbeat)
-      stale_process = SolidQueue::Process.create!(
+      SolidQueue::Process.create!(
         hostname: "stale_worker",
         pid: 6001,
         last_heartbeat_at: 2.hours.ago
       )
 
       # Create fresh process
-      fresh_process = SolidQueue::Process.create!(
+      SolidQueue::Process.create!(
         hostname: "fresh_worker",
         pid: 6002,
         last_heartbeat_at: 1.minute.ago
@@ -337,22 +337,20 @@ RSpec.describe "Concurrency and Performance" do
       )
       job.dispatch
 
-      claimed = SolidQueue::ReadyExecution.claim_batch(1, process: process1, queues: "default").first
+      SolidQueue::ReadyExecution.claim_batch(1, process: process1, queues: "default").first
 
       # Try to finish the job from multiple threads
       threads = 3.times.map do
         Thread.new do
-          begin
-            job.reload
-            job.finish unless job.finished?
-            true
-          rescue => e
-            e
-          end
+          job.reload
+          job.finish unless job.finished?
+          true
+        rescue StandardError => e
+          e
         end
       end
 
-      results = threads.map(&:value)
+      threads.map(&:value)
 
       # Job should be marked as finished
       job.reload

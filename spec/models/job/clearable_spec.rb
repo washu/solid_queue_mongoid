@@ -7,7 +7,7 @@ RSpec.describe SolidQueue::Job::Clearable do
     SolidQueue::Job.create!(
       queue_name: "default",
       class_name: "TestJob",
-      arguments:  {},
+      arguments: {},
       finished_at: finished_at
     )
   end
@@ -26,7 +26,7 @@ RSpec.describe SolidQueue::Job::Clearable do
     it "filters by class_name when provided" do
       make_job(finished_at: 2.days.ago)
       SolidQueue::Job.create!(queue_name: "default", class_name: "OtherJob",
-                               arguments: {}, finished_at: 2.days.ago)
+                              arguments: {}, finished_at: 2.days.ago)
 
       clearable = SolidQueue::Job.clearable(finished_before: 1.day.ago, class_name: "TestJob")
       expect(clearable.pluck(:class_name).uniq).to eq(["TestJob"])

@@ -9,14 +9,14 @@ module SolidQueue
     belongs_to :process, class_name: "SolidQueue::Process", optional: true
 
     # Executions whose process_id references a process that no longer exists.
-    scope :orphaned, -> {
+    scope :orphaned, lambda {
       existing_process_ids = SolidQueue::Process.all.pluck(:id)
       existing_process_ids.empty? ? all : where(:process_id.nin => existing_process_ids)
     }
 
     index({ process_id: 1 })
 
-    class Result < Struct.new(:success, :error)
+    Result = Struct.new(:success, :error) do
       def success?
         success
       end
@@ -46,11 +46,9 @@ module SolidQueue
         SolidQueue.instrument(:release_many_claimed) do |payload|
           executions = all.to_a
           executions.each do |execution|
-            begin
-              execution.release
-            rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure
-              # If ReadyExecution already exists, that's fine
-            end
+            execution.release
+          rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure
+            # If ReadyExecution already exists, that's fine
           end
           payload[:size] = executions.size
         end
@@ -122,7 +120,7 @@ module SolidQueue
     def execute
       ActiveJob::Base.execute(job.arguments.merge("provider_job_id" => job.id.to_s))
       Result.new(true, nil)
-    rescue Exception => e
+    rescue Exception => e # rubocop:disable Lint/RescueException
       Result.new(false, e)
     end
 

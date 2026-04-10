@@ -26,7 +26,13 @@
       "Bash(grep -E \"example|failure|FAILED|✓|·|F$|passed|failed\")",
       "Bash(gh run:*)",
       "Bash(gh auth:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(RAILS_VERSION=8.1 bundle install)",
+      "Bash(RAILS_VERSION=8.1 bundle exec rubocop)",
+      "Bash(RAILS_VERSION=8.1 bundle exec rubocop -a)",
+      "Bash(RAILS_VERSION=8.1 bundle exec rubocop -A)",
+      "Bash(RAILS_VERSION=8.1 bundle exec rubocop --format simple)",
+      "Bash(grep -v \"^$\\\\|^Inspecting\\\\|^Tip\\\\|rubocop-\\\\|opt out\\\\|AllCops\\\\|Suggest\")"
     ]
   }
 }

@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe SolidQueue::ReadyExecution do
   let(:process) do
     SolidQueue::Process.create!(
-      hostname: "localhost", pid: 12345, name: "worker", kind: "Worker"
+      hostname: "localhost", pid: 12_345, name: "worker", kind: "Worker"
     )
   end
 

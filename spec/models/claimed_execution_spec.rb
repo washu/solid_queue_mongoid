@@ -6,7 +6,7 @@ RSpec.describe SolidQueue::ClaimedExecution do
   let(:process) do
     SolidQueue::Process.create!(
       hostname: "localhost",
-      pid: 12345,
+      pid: 12_345,
       name: "worker-test",
       kind: "Worker"
     )

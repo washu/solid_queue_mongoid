@@ -188,15 +188,14 @@ RSpec.describe SolidQueue::Job do
   describe ".enqueue" do
     it "creates a job and marks the active_job as successfully enqueued" do
       active_job = double("active_job",
-        queue_name:   "default",
-        job_id:       "aj-123",
-        priority:     0,
-        scheduled_at: nil,
-        class:        double(name: "TestJob"),
-        serialize:    { "job_class" => "TestJob" },
-        try:          nil,
-        successfully_enqueued: false
-      )
+                          queue_name: "default",
+                          job_id: "aj-123",
+                          priority: 0,
+                          scheduled_at: nil,
+                          class: double(name: "TestJob"),
+                          serialize: { "job_class" => "TestJob" },
+                          try: nil,
+                          successfully_enqueued: false)
       allow(active_job).to receive(:scheduled_at=)
       allow(active_job).to receive(:provider_job_id=)
       allow(active_job).to receive(:successfully_enqueued=)
@@ -211,17 +210,16 @@ RSpec.describe SolidQueue::Job do
 
   describe ".enqueue_all" do
     it "enqueues multiple active jobs and returns count of successful ones" do
-      make_active_job = ->(id) {
+      make_active_job = lambda { |id|
         double("aj_#{id}",
-          queue_name:   "default",
-          job_id:       id,
-          priority:     0,
-          scheduled_at: nil,
-          class:        double(name: "TestJob"),
-          serialize:    { "job_class" => "TestJob" },
-          try:          nil,
-          successfully_enqueued: false
-        ).tap do |aj|
+               queue_name: "default",
+               job_id: id,
+               priority: 0,
+               scheduled_at: nil,
+               class: double(name: "TestJob"),
+               serialize: { "job_class" => "TestJob" },
+               try: nil,
+               successfully_enqueued: false).tap do |aj|
           allow(aj).to receive(:scheduled_at=)
           allow(aj).to receive(:provider_job_id=)
           allow(aj).to receive(:successfully_enqueued=)
@@ -233,7 +231,7 @@ RSpec.describe SolidQueue::Job do
       count = described_class.enqueue_all(active_jobs)
 
       expect(count).to eq(2)
-      expect(described_class.where(:active_job_id.in => ["aj-1", "aj-2"]).count).to eq(2)
+      expect(described_class.where(:active_job_id.in => %w[aj-1 aj-2]).count).to eq(2)
     end
   end
 
@@ -260,7 +258,7 @@ RSpec.describe SolidQueue::Job do
   describe "#status" do
     it "returns :finished for a finished job" do
       job = described_class.create!(queue_name: "default", class_name: "TestJob",
-                                     arguments: {}, finished_at: Time.current)
+                                    arguments: {}, finished_at: Time.current)
       expect(job.status).to eq(:finished)
     end
 

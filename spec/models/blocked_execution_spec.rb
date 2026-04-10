@@ -29,7 +29,7 @@ RSpec.describe SolidQueue::BlockedExecution do
 
   describe "#unblock" do
     it "unblocks when semaphore is available" do
-      semaphore = SolidQueue::Semaphore.create!(
+      SolidQueue::Semaphore.create!(
         key: "test_key",
         value: 0,
         limit: 2
@@ -49,7 +49,7 @@ RSpec.describe SolidQueue::BlockedExecution do
     end
 
     it "does not unblock when semaphore is at limit" do
-      semaphore = SolidQueue::Semaphore.create!(
+      SolidQueue::Semaphore.create!(
         key: "test_key",
         value: 1,
         limit: 1
@@ -110,16 +110,16 @@ RSpec.describe SolidQueue::BlockedExecution do
     end
 
     it "uses the release index hint without raising" do
-      expect {
+      expect do
         described_class.use_index(:index_solid_queue_blocked_executions_for_release)
-          .where(concurrency_key: "any").count
-      }.not_to raise_error
+                       .where(concurrency_key: "any").count
+      end.not_to raise_error
     end
   end
 
   describe ".unblock_all" do
     before do
-      semaphore = SolidQueue::Semaphore.create!(
+      SolidQueue::Semaphore.create!(
         key: "test_key",
         value: 0,
         limit: 5

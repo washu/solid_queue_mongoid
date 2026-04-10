@@ -63,7 +63,7 @@ RSpec.describe "SolidQueue 1.3.x API contract" do
 
     it "register accepts the runtime keyword set" do
       expect(SolidQueue::Process.method(:register).parameters).to include(
-        [:keyreq, :kind], [:keyreq, :name], [:keyreq, :pid], [:keyreq, :hostname]
+        %i[keyreq kind], %i[keyreq name], %i[keyreq pid], %i[keyreq hostname]
       )
     end
 
@@ -144,4 +144,3 @@ RSpec.describe "SolidQueue 1.3.x API contract" do
     it { is_expected.to respond_to(:signal_all) }
   end
 end
-

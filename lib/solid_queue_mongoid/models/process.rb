@@ -14,9 +14,9 @@ module SolidQueue
     field :last_heartbeat_at, type: Time
 
     belongs_to :supervisor, class_name: "SolidQueue::Process", optional: true,
-               inverse_of: :supervisees
+                            inverse_of: :supervisees
     has_many :supervisees, class_name: "SolidQueue::Process",
-             inverse_of: :supervisor, foreign_key: :supervisor_id
+                           inverse_of: :supervisor, foreign_key: :supervisor_id
 
     index({ hostname: 1, pid: 1 })
     index({ last_heartbeat_at: 1 })
@@ -36,8 +36,8 @@ module SolidQueue
           create!(attrs).tap do |process|
             payload[:process_id] = process.id
           end
-        rescue => error
-          payload[:error] = error
+        rescue StandardError => e
+          payload[:error] = e
           raise
         end
       end
@@ -45,7 +45,11 @@ module SolidQueue
 
     def heartbeat
       # Reload to clear any stale state before updating heartbeat
-      reload rescue nil
+      begin
+        reload
+      rescue StandardError
+        nil
+      end
       update!(last_heartbeat_at: Time.current)
     end
 
@@ -53,11 +57,9 @@ module SolidQueue
       SolidQueue.instrument(:deregister_process, process: self, pruned: pruned) do |payload|
         destroy!
 
-        unless supervised? || pruned
-          supervisees.each(&:deregister)
-        end
-      rescue => error
-        payload[:error] = error
+        supervisees.each(&:deregister) unless supervised? || pruned
+      rescue StandardError => e
+        payload[:error] = e
         raise
       end
     end

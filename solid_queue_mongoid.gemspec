@@ -9,10 +9,11 @@ Gem::Specification.new do |spec|
   spec.email = ["sal.scotto@gmail.com"]
 
   spec.summary = "Mongoid adapter for SolidQueue"
-  spec.description = "Provides Mongoid models to replace ActiveRecord models in SolidQueue, enabling MongoDB as the backend for job queuing."
+  spec.description = "Provides Mongoid models to replace ActiveRecord models in SolidQueue, " \
+                     "enabling MongoDB as the backend for job queuing."
   spec.homepage = "https://github.com/washu/solid_queue_mongoid"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.0.0"
+  spec.required_ruby_version = ">= 3.2.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/washu/solid_queue_mongoid"
@@ -31,9 +32,9 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "fugit", "~> 1.11"
   spec.add_dependency "mongoid", "~> 9.0"
   spec.add_dependency "solid_queue", ">= 1.4.0", "< 2.0"
-  spec.add_dependency "fugit", "~> 1.11"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html

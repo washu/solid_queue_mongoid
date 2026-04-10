@@ -82,8 +82,8 @@ module SolidQueue
   # uses ActiveSupport::Notifications. When solid_queue is loaded it already
   # defines this, so we only add it when missing.
   unless respond_to?(:instrument)
-    def self.instrument(event, payload = {}, &block)
-      return yield(payload) if block_given?
+    def self.instrument(_event, payload = {}, &block)
+      yield(payload) if block_given?
     end
   end
 end
@@ -113,7 +113,7 @@ require_relative "solid_queue_mongoid/models/job/executable"
 
 # 6. Concrete models
 require_relative "solid_queue_mongoid/models/job"
-require_relative "solid_queue_mongoid/models/semaphore"          # needed by BlockedExecution
+require_relative "solid_queue_mongoid/models/semaphore" # needed by BlockedExecution
 require_relative "solid_queue_mongoid/models/ready_execution"
 require_relative "solid_queue_mongoid/models/claimed_execution"
 require_relative "solid_queue_mongoid/models/blocked_execution"

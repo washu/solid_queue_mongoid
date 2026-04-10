@@ -18,9 +18,9 @@ module SolidQueue
       end
 
       def unblock_next_blocked_job
-        if release_concurrency_lock
-          release_next_blocked_job
-        end
+        return unless release_concurrency_lock
+
+        release_next_blocked_job
       end
 
       def concurrency_limited?
@@ -36,6 +36,7 @@ module SolidQueue
       def concurrency_limit
         limit = read_attribute(:concurrency_limit)
         return limit if limit.present?
+
         job_class.respond_to?(:concurrency_limit) ? job_class.concurrency_limit : nil
       end
 
@@ -48,6 +49,7 @@ module SolidQueue
 
       def concurrency_on_conflict
         return "block".inquiry unless job_class.respond_to?(:concurrency_on_conflict)
+
         job_class.concurrency_on_conflict.to_s.inquiry
       end
 

@@ -53,7 +53,7 @@ def run_pending_jobs(queues: "*", batch_size: 10, max_iterations: 20)
   process = SolidQueue::Process.create!(
     kind: "Worker",
     name: "integration-test-worker",
-    pid:  Process.pid,
+    pid: Process.pid,
     hostname: "localhost",
     last_heartbeat_at: Time.current
   )
@@ -73,7 +73,11 @@ def run_pending_jobs(queues: "*", batch_size: 10, max_iterations: 20)
     end
   end
 ensure
-  process&.destroy! rescue nil
+  begin
+    process&.destroy!
+  rescue StandardError
+    nil
+  end
 end
 
 # ---------------------------------------------------------------------------
@@ -93,7 +97,9 @@ RSpec.describe "SolidQueueMongoid Railtie" do
   end
 
   after(:all) do
-    Mongoid.purge! rescue nil
+    Mongoid.purge!
+  rescue StandardError
+    nil
   end
 
   # ── Infrastructure checks ────────────────────────────────────────────────
@@ -107,7 +113,7 @@ RSpec.describe "SolidQueueMongoid Railtie" do
     job = SolidQueue::Job.create!(
       queue_name: "default",
       class_name: "TestJob",
-      arguments:  {}
+      arguments: {}
     )
     expect(job).to be_persisted
     expect(SolidQueue::Job.where(id: job.id).exists?).to be true
@@ -125,7 +131,7 @@ RSpec.describe "SolidQueueMongoid Railtie" do
     eager_paths = Rails.application.config.eager_load_paths
     matching = eager_paths.select { |p| p.start_with?(sq_app_path) }
     expect(matching).to be_empty,
-      "Expected SolidQueue app/ to be removed from eager_load_paths, but found: #{matching.inspect}"
+                        "Expected SolidQueue app/ to be removed from eager_load_paths, but found: #{matching.inspect}"
   end
 
   it "SolidQueue AR model files are marked as ignored by Zeitwerk" do
@@ -133,15 +139,16 @@ RSpec.describe "SolidQueueMongoid Railtie" do
 
     Rails.autoloaders.each do |loader|
       next unless loader.respond_to?(:ignored?)
+
       expect(loader.ignored?(sq_job_file)).to be(true),
-        "Expected #{sq_job_file} to be ignored by Zeitwerk"
+                                              "Expected #{sq_job_file} to be ignored by Zeitwerk"
     end
   end
 
   it "all_models returns Mongoid-backed classes" do
     SolidQueueMongoid.all_models.each do |model|
       expect(model.ancestors).to include(Mongoid::Document),
-        "Expected #{model} to include Mongoid::Document"
+                                 "Expected #{model} to include Mongoid::Document"
     end
   end
 
@@ -162,15 +169,15 @@ RSpec.describe "SolidQueueMongoid Railtie" do
     # persists a RecurringTask then calls #enqueue with a past run_at so the
     # job is immediately due.
     def enqueue_recurring(key:, class_name:, run_at: 1.minute.ago, schedule: "* * * * *")
-      task = SolidQueue::RecurringTask.create_or_update_all([
-        SolidQueue::RecurringTask.new(
-          key:        key,
-          class_name: class_name,
-          schedule:   schedule,
-          queue_name: "integration_test",
-          static:     true
-        )
-      ])
+      SolidQueue::RecurringTask.create_or_update_all([
+                                                       SolidQueue::RecurringTask.new(
+                                                         key: key,
+                                                         class_name: class_name,
+                                                         schedule: schedule,
+                                                         queue_name: "integration_test",
+                                                         static: true
+                                                       )
+                                                     ])
       SolidQueue::RecurringTask.find_by(key: key).enqueue(at: run_at)
     end
 
@@ -213,7 +220,7 @@ RSpec.describe "SolidQueueMongoid Railtie" do
       )
 
       task.enqueue(at: run_at)
-      task.enqueue(at: run_at)  # second call — same run_at, should be silently skipped
+      task.enqueue(at: run_at) # second call — same run_at, should be silently skipped
 
       expect(SolidQueue::RecurringExecution.where(task_key: "cron_dedup").count).to eq(1)
       expect(SolidQueue::Job.where(class_name: "RecurringTestJob").count).to eq(1)
@@ -239,11 +246,12 @@ RSpec.describe "SolidQueueMongoid Railtie" do
       )
 
       SolidQueue::RecurringTask.create_or_update_all([
-        SolidQueue::RecurringTask.new(
-          key: "cron_update", class_name: "RecurringTestJob",
-          schedule: "30 * * * *", queue_name: "integration_test", static: true
-        )
-      ])
+                                                       SolidQueue::RecurringTask.new(
+                                                         key: "cron_update", class_name: "RecurringTestJob",
+                                                         schedule: "30 * * * *", queue_name: "integration_test",
+                                                         static: true
+                                                       )
+                                                     ])
 
       task = SolidQueue::RecurringTask.find_by(key: "cron_update")
       expect(task.schedule).to eq("30 * * * *")
@@ -310,7 +318,7 @@ RSpec.describe "SolidQueueMongoid Railtie" do
 
       attempts = IntegrationTestResults.for("retry_test")
       # Should have recorded: attempt_0, attempt_1, attempt_2 (success)
-      expect(attempts).to eq(["attempt_0", "attempt_1", "attempt_2"])
+      expect(attempts).to eq(%w[attempt_0 attempt_1 attempt_2])
 
       # No failed executions — job ultimately succeeded
       expect(SolidQueue::FailedExecution.count).to eq(0)
@@ -325,7 +333,7 @@ RSpec.describe "SolidQueueMongoid Railtie" do
 
       attempts = IntegrationTestResults.for("fail_test")
       # Two attempts recorded: attempt_0 and attempt_1
-      expect(attempts).to eq(["attempt_0", "attempt_1"])
+      expect(attempts).to eq(%w[attempt_0 attempt_1])
 
       # After exhausting retries, SolidQueue creates a FailedExecution
       expect(SolidQueue::FailedExecution.count).to eq(1)

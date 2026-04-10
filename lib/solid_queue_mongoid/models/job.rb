@@ -68,7 +68,7 @@ module SolidQueue
 
       def create_from_active_job(active_job)
         create!(**attributes_from_active_job(active_job))
-      rescue => e
+      rescue StandardError => e
         enqueue_error = EnqueueError.new("#{e.class.name}: #{e.message}").tap do |err|
           err.set_backtrace(e.backtrace)
         end

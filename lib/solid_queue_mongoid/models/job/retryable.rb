@@ -34,11 +34,11 @@ module SolidQueue
       end
 
       def reset_execution_counters
-        if arguments.is_a?(Hash)
-          arguments["executions"] = 0
-          arguments["exception_executions"] = {}
-          save!
-        end
+        return unless arguments.is_a?(Hash)
+
+        arguments["executions"] = 0
+        arguments["exception_executions"] = {}
+        save!
       end
 
       private

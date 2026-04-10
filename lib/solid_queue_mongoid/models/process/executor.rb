@@ -7,7 +7,7 @@ module SolidQueue
 
       included do
         has_many :claimed_executions, class_name: "SolidQueue::ClaimedExecution",
-                 foreign_key: :process_id
+                                      foreign_key: :process_id
 
         after_destroy :release_all_claimed_executions
       end
@@ -22,10 +22,9 @@ module SolidQueue
 
       private
 
-        def claims_executions?
-          kind.nil? || kind == "Worker"
-        end
+      def claims_executions?
+        kind.nil? || kind == "Worker"
+      end
     end
   end
 end
-

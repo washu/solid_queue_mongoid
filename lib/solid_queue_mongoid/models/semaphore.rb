@@ -48,6 +48,7 @@ module SolidQueue
         true
       rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure => e
         raise unless duplicate_key_error?(e)
+
         false
       end
 
@@ -137,6 +138,7 @@ module SolidQueue
           # Race: someone else created it first — try to acquire from existing
           sem = Semaphore.where(key: key).first
           return false unless sem
+
           attempt_acquire(sem.id, sem.limit)
         end
       end

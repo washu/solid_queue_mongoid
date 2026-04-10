@@ -20,10 +20,9 @@ RSpec.describe SolidQueue::Semaphore do
   describe ".wait / .signal via Proxy" do
     let(:job) do
       double("job",
-        concurrency_key:      "resource_key",
-        concurrency_limit:    2,
-        concurrency_duration: 5.minutes
-      )
+             concurrency_key: "resource_key",
+             concurrency_limit: 2,
+             concurrency_duration: 5.minutes)
     end
 
     it "allows acquisition when below limit" do

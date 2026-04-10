@@ -46,13 +46,11 @@ def wait_for_port(host, timeout: 180)
   hostname, port = host.split(":")
   deadline = Time.now + timeout
   loop do
-    begin
-      Socket.tcp(hostname, port.to_i, connect_timeout: 2) { return true }
-    rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
-      raise "MongoDB port not reachable at #{host} after #{timeout}s" if Time.now > deadline
+    Socket.tcp(hostname, port.to_i, connect_timeout: 2) { return true }
+  rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
+    raise "MongoDB port not reachable at #{host} after #{timeout}s" if Time.now > deadline
 
-      sleep 2
-    end
+    sleep 2
   end
 end
 

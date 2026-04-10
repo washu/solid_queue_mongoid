@@ -1,9 +1,47 @@
 AllCops:
   TargetRubyVersion: 3.2
   NewCops: disable
+  SuggestExtensions: false
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
+
+# Internal library classes don't need doc comments
+Style/Documentation:
+  Enabled: false
+
+# Class vars are used intentionally via mattr_accessor
+Style/ClassVars:
+  Enabled: false
+
+# RSpec blocks are inherently long; rake tasks too
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*"
+    - "lib/tasks/**/*"
+    - "**/*.gemspec"
+
+# Some methods are inherently complex (MongoDB transaction stubs, etc.)
+Metrics/MethodLength:
+  Max: 25
+
+Metrics/AbcSize:
+  Max: 25
+
+Metrics/CyclomaticComplexity:
+  Max: 12
+
+Metrics/PerceivedComplexity:
+  Max: 12
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/ModuleLength:
+  Max: 150
+
+Metrics/ParameterLists:
+  Max: 7

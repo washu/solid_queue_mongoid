@@ -7,7 +7,7 @@ module SolidQueue
 
       included do
         class_attribute :assumable_attributes_from_job, instance_accessor: false,
-                        default: %i[ queue_name priority ]
+                                                        default: %i[queue_name priority]
 
         field :queue_name, type: String
         field :priority, type: Integer, default: 0
@@ -32,9 +32,9 @@ module SolidQueue
           self.assumable_attributes_from_job = (assumable_attributes_from_job + attribute_names).uniq
           before_create :assume_attributes_from_job
           # Add unique job_id index to THIS subclass's collection (not parent's)
-          unless index_specifications.any? { |s| s.spec.keys.map(&:to_s) == ["job_id"] && s.options[:unique] }
-            index({ job_id: 1 }, { unique: true })
-          end
+          return if index_specifications.any? { |s| s.spec.keys.map(&:to_s) == ["job_id"] && s.options[:unique] }
+
+          index({ job_id: 1 }, { unique: true })
         end
 
         def attributes_from_job(job)

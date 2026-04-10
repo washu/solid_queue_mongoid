@@ -38,7 +38,7 @@ module SolidQueue
     end
 
     # Error attribute accessors matching SolidQueue API
-    %i[ exception_class message backtrace ].each do |attribute|
+    %i[exception_class message backtrace].each do |attribute|
       define_method(attribute) { error&.with_indifferent_access&.[](attribute.to_s) }
     end
 
@@ -49,13 +49,13 @@ module SolidQueue
     BACKTRACE_SIZE_LIMIT = 50_000 # bytes of JSON
 
     def expand_error_details_from_exception
-      if exception
-        self.error = {
-          "exception_class" => exception.class.name,
-          "message" => exception.message,
-          "backtrace" => truncate_backtrace(exception.backtrace)
-        }
-      end
+      return unless exception
+
+      self.error = {
+        "exception_class" => exception.class.name,
+        "message" => exception.message,
+        "backtrace" => truncate_backtrace(exception.backtrace)
+      }
     end
 
     def truncate_backtrace(lines)

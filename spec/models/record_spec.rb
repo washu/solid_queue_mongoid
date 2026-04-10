@@ -54,12 +54,12 @@ RSpec.describe SolidQueue::Record do
     end
 
     it "can be chained with where and still execute" do
-      expect {
+      expect do
         SolidQueue::BlockedExecution
           .use_index(:index_solid_queue_blocked_executions_for_release)
           .where(concurrency_key: "test")
           .count
-      }.not_to raise_error
+      end.not_to raise_error
     end
   end
 

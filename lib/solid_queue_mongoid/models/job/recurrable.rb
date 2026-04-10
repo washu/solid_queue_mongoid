@@ -7,7 +7,7 @@ module SolidQueue
 
       included do
         has_one :recurring_execution, class_name: "SolidQueue::RecurringExecution",
-                foreign_key: :job_id, dependent: :destroy
+                                      foreign_key: :job_id, dependent: :destroy
       end
     end
   end

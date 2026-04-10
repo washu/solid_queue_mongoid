@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe SolidQueue::Process do
   describe "validations" do
     it "requires hostname" do
-      process = described_class.new(pid: 12345, kind: "Worker", name: "w-1")
+      process = described_class.new(pid: 12_345, kind: "Worker", name: "w-1")
       expect(process).not_to be_valid
       expect(process.errors[:hostname]).to be_present
     end
@@ -40,7 +40,7 @@ RSpec.describe SolidQueue::Process do
   describe "#heartbeat" do
     it "updates last_heartbeat_at" do
       process = described_class.create!(
-        kind: "Worker", hostname: "localhost", pid: 12345,
+        kind: "Worker", hostname: "localhost", pid: 12_345,
         name: "worker", last_heartbeat_at: 1.hour.ago
       )
 
@@ -53,7 +53,7 @@ RSpec.describe SolidQueue::Process do
   describe "#deregister" do
     it "destroys the process" do
       process = described_class.create!(
-        kind: "Worker", hostname: "localhost", pid: 12345, name: "worker"
+        kind: "Worker", hostname: "localhost", pid: 12_345, name: "worker"
       )
 
       process.deregister
@@ -65,11 +65,11 @@ RSpec.describe SolidQueue::Process do
   describe ".prune" do
     it "removes processes with stale heartbeats" do
       fresh = described_class.create!(
-        kind: "Worker", hostname: "localhost", pid: 11111,
+        kind: "Worker", hostname: "localhost", pid: 11_111,
         name: "fresh_worker", last_heartbeat_at: 1.minute.ago
       )
       _stale = described_class.create!(
-        kind: "Worker", hostname: "localhost", pid: 22222,
+        kind: "Worker", hostname: "localhost", pid: 22_222,
         name: "stale_worker", last_heartbeat_at: 10.minutes.ago
       )
 

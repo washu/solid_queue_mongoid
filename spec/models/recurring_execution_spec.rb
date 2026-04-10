@@ -18,9 +18,8 @@ RSpec.describe SolidQueue::RecurringExecution do
 
     it "creates a RecurringExecution document when the job is successfully enqueued" do
       dummy_job = double("active_job",
-        successfully_enqueued?: true,
-        provider_job_id: BSON::ObjectId.new.to_s
-      )
+                         successfully_enqueued?: true,
+                         provider_job_id: BSON::ObjectId.new.to_s)
 
       run_at = 1.hour.ago
       described_class.record("my_task", run_at) { dummy_job }
@@ -42,9 +41,9 @@ RSpec.describe SolidQueue::RecurringExecution do
       run_at = Time.current
       described_class.create_or_insert!(task_key: "dup", run_at: run_at)
 
-      expect {
+      expect do
         described_class.create_or_insert!(task_key: "dup", run_at: run_at)
-      }.to raise_error(SolidQueue::RecurringExecution::AlreadyRecorded)
+      end.to raise_error(SolidQueue::RecurringExecution::AlreadyRecorded)
     end
   end
 end

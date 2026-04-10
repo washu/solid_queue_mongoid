@@ -26,7 +26,7 @@ module SolidQueue
     validate :ensure_existing_job_class
 
     has_many :recurring_executions, foreign_key: :task_key, primary_key: :key,
-             class_name: "SolidQueue::RecurringExecution"
+                                    class_name: "SolidQueue::RecurringExecution"
 
     mattr_accessor :default_job_class
     self.default_job_class = "SolidQueue::RecurringJob".safe_constantize
@@ -94,9 +94,7 @@ module SolidQueue
                      else
                        payload[:other_adapter] = true
                        perform_later.tap do |job|
-                         unless job.successfully_enqueued?
-                           payload[:enqueue_error] = job.enqueue_error&.message
-                         end
+                         payload[:enqueue_error] = job.enqueue_error&.message unless job.successfully_enqueued?
                        end
                      end
 
@@ -106,8 +104,8 @@ module SolidQueue
       rescue RecurringExecution::AlreadyRecorded
         payload[:skipped] = true
         false
-      rescue Job::EnqueueError => error
-        payload[:enqueue_error] = error.message
+      rescue Job::EnqueueError => e
+        payload[:enqueue_error] = e.message
         false
       end
     end
@@ -128,26 +126,26 @@ module SolidQueue
       unless parsed_schedule.instance_of?(Fugit::Cron)
         errors.add :schedule, :unsupported, message: "is not a supported recurring schedule"
       end
-    rescue ArgumentError => error
-      message = if error.message.include?("multiple crons")
+    rescue ArgumentError => e
+      message = if e.message.include?("multiple crons")
                   "generates multiple cron schedules. Please use separate recurring tasks for each schedule, " \
                     "or use explicit cron syntax (e.g., '40 0,15 * * *' for multiple times with the same minutes)"
                 else
-                  error.message
+                  e.message
                 end
       errors.add :schedule, :unsupported, message: message
     end
 
     def ensure_command_or_class_present
-      unless command.present? || class_name.present?
-        errors.add :base, :command_and_class_blank, message: "either command or class must be present"
-      end
+      return if command.present? || class_name.present?
+
+      errors.add :base, :command_and_class_blank, message: "either command or class must be present"
     end
 
     def ensure_existing_job_class
-      if class_name.present? && job_class.nil?
-        errors.add :class_name, :undefined, message: "doesn't correspond to an existing class"
-      end
+      return unless class_name.present? && job_class.nil?
+
+      errors.add :class_name, :undefined, message: "doesn't correspond to an existing class"
     end
 
     def using_solid_queue_adapter?

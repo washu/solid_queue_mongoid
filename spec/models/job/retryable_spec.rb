@@ -5,15 +5,15 @@ require "spec_helper"
 RSpec.describe SolidQueue::Job::Retryable do
   def make_job(**attrs)
     SolidQueue::Job.create!(queue_name: "default", class_name: "TestJob",
-                             arguments: { "executions" => 1, "exception_executions" => {} },
-                             **attrs)
+                            arguments: { "executions" => 1, "exception_executions" => {} },
+                            **attrs)
   end
 
   describe "#failed_with" do
     it "creates a FailedExecution with exception details" do
       job = make_job
       error = StandardError.new("something broke")
-      error.set_backtrace(["line1", "line2"])
+      error.set_backtrace(%w[line1 line2])
 
       job.failed_with(error)
 

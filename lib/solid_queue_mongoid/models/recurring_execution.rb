@@ -14,7 +14,7 @@ module SolidQueue
     index({ job_id: 1 })
 
     # Clearable when the associated job no longer exists.
-    scope :clearable, -> {
+    scope :clearable, lambda {
       existing_job_ids = SolidQueue::Job.all.pluck(:id)
       where(:job_id.nin => existing_job_ids).or(job_id: nil)
     }
@@ -25,7 +25,7 @@ module SolidQueue
       def record(task_key, run_at, &block)
         Mongoid.transaction do
           block.call.tap do |active_job|
-            if active_job && active_job.successfully_enqueued?
+            if active_job&.successfully_enqueued?
               create_or_insert!(
                 task_key: task_key,
                 run_at: run_at,
@@ -41,13 +41,14 @@ module SolidQueue
         create!(task_key: task_key, run_at: run_at, job_id: job_id)
       rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure => e
         raise AlreadyRecorded if duplicate_key_error?(e)
+
         raise
       end
 
       def clear_in_batches(batch_size: 500)
         loop do
           deleted = clearable.limit(batch_size).delete_all
-          break if deleted == 0
+          break if deleted.zero?
         end
       end
 

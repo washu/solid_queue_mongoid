@@ -55,6 +55,7 @@ module SolidQueue
             sort: { "priority" => -1, "created_at" => 1 }
           )
           break unless raw
+
           job_ids << raw["job_id"]
         end
         job_ids

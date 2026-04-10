@@ -13,7 +13,7 @@ module SolidQueue
     # This prevents index cross-contamination between models.
     class << self
       def index_specifications
-        @_sq_index_specs ||= []
+        @index_specifications ||= []
       end
 
       def index_specifications=(val)
@@ -23,9 +23,9 @@ module SolidQueue
       # Override Mongoid's index() to use our per-class storage.
       def index(spec, options = nil)
         specification = Mongoid::Indexable::Specification.new(self, spec, options)
-        unless index_specifications.include?(specification)
-          index_specifications.push(specification)
-        end
+        return if index_specifications.include?(specification)
+
+        index_specifications.push(specification)
       end
     end
 
@@ -70,7 +70,7 @@ module SolidQueue
       # Mongoid 9 supports multi-document transactions via replica sets.
       # We wrap in a MongoDB session transaction when available; fall back to a
       # plain yield for non-replica-set environments (e.g. tests with a standalone).
-      def transaction(requires_new: false, &block)
+      def transaction(_requires_new: false, &block)
         Mongoid::QueryCache.clear_cache
         Mongoid.default_client.with_session do |session|
           session.start_transaction
@@ -81,6 +81,7 @@ module SolidQueue
       rescue Mongo::Error::InvalidSession, Mongo::Error::OperationFailure => e
         # Not in a replica set or session not supported — execute without transaction
         raise if e.message.to_s.include?("Transaction numbers are only allowed")
+
         yield
       rescue StandardError
         yield
@@ -98,13 +99,12 @@ module SolidQueue
         record
       rescue Mongoid::Errors::Validations => e
         # If the only errors are uniqueness-related, fall back to find the existing record
-        if uniqueness_only_error?(e.document)
-          find_by_unique_key(attrs) || where(attrs).first || record
-        else
-          raise
-        end
+        raise unless uniqueness_only_error?(e.document)
+
+        find_by_unique_key(attrs) || where(attrs).first || record
       rescue Mongo::Error::OperationFailure => e
         raise unless duplicate_key_error?(e)
+
         find_by_unique_key(attrs) || where(attrs).first || raise(e)
       end
 
@@ -127,11 +127,13 @@ module SolidQueue
       def find_by_unique_key(attrs)
         return where(job_id: attrs[:job_id]).first if attrs[:job_id]
         return where(key: attrs[:key]).first if attrs[:key]
+
         nil
       end
 
       def uniqueness_only_error?(document)
         return false unless document.respond_to?(:errors)
+
         document.errors.all? do |error|
           error.type == :taken || error.message.to_s.include?("already been taken") ||
             (error.attribute.to_s != "base" &&

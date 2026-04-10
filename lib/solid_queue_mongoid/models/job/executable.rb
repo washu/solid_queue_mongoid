@@ -8,7 +8,6 @@ module SolidQueue
       included do
         include ConcurrencyControls, Schedulable, Retryable
 
-
         has_one :ready_execution,   class_name: "SolidQueue::ReadyExecution",   dependent: :destroy
         has_one :claimed_execution, class_name: "SolidQueue::ClaimedExecution", dependent: :destroy
 
@@ -19,7 +18,7 @@ module SolidQueue
         scope :pending,  -> { where(finished_at: nil) }
       end
 
-      class_methods do
+      class_methods do # rubocop:disable Metrics/BlockLength
         # Dispatch a collection of jobs, partitioned by schedule and concurrency.
         def prepare_all_for_execution(jobs)
           due, not_yet_due = jobs.partition(&:due?)
@@ -37,32 +36,32 @@ module SolidQueue
 
         private
 
-          def dispatch_all_at_once(jobs)
-            ReadyExecution.create_all_from_jobs(jobs)
-          end
+        def dispatch_all_at_once(jobs)
+          ReadyExecution.create_all_from_jobs(jobs)
+        end
 
-          def dispatch_all_one_by_one(jobs)
-            jobs.each(&:dispatch)
-          end
+        def dispatch_all_one_by_one(jobs)
+          jobs.each(&:dispatch)
+        end
 
-          def successfully_dispatched(jobs)
-            job_ids = jobs.map(&:id)
-            dispatched_and_ready(jobs) + dispatched_and_blocked(jobs)
-          end
+        def successfully_dispatched(jobs)
+          jobs.map(&:id)
+          dispatched_and_ready(jobs) + dispatched_and_blocked(jobs)
+        end
 
-          def dispatched_and_ready(jobs)
-            job_ids = jobs.map(&:id)
-            where(:id.in => ReadyExecution.where(:job_id.in => job_ids).pluck(:job_id))
-          end
+        def dispatched_and_ready(jobs)
+          job_ids = jobs.map(&:id)
+          where(:id.in => ReadyExecution.where(:job_id.in => job_ids).pluck(:job_id))
+        end
 
-          def dispatched_and_blocked(jobs)
-            job_ids = jobs.map(&:id)
-            where(:id.in => BlockedExecution.where(:job_id.in => job_ids).pluck(:job_id))
-          end
+        def dispatched_and_blocked(jobs)
+          job_ids = jobs.map(&:id)
+          where(:id.in => BlockedExecution.where(:job_id.in => job_ids).pluck(:job_id))
+        end
       end
 
       # status helpers matching SolidQueue runtime expectations
-      %w[ ready claimed failed ].each do |status|
+      %w[ready claimed failed].each do |status|
         define_method("#{status}?") { public_send("#{status}_execution").present? }
       end
 
@@ -102,7 +101,7 @@ module SolidQueue
         end
       end
 
-      alias_method :finish, :finished!
+      alias finish finished!
 
       def finished?
         finished_at.present?
@@ -120,26 +119,24 @@ module SolidQueue
         execution&.discard
       end
 
-      private
+      def ready
+        existing = ReadyExecution.where(job_id: id).first
+        return existing if existing
 
-        def ready
-          existing = ReadyExecution.where(job_id: id).first
-          return existing if existing
+        re = ReadyExecution.new(job_id: id)
+        re.queue_name = queue_name
+        re.priority   = priority
+        re.save!
+        re
+      rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure
+        ReadyExecution.where(job_id: id).first
+      end
 
-          re = ReadyExecution.new(job_id: id)
-          re.queue_name = queue_name
-          re.priority   = priority
-          re.save!
-          re
-        rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure
-          ReadyExecution.where(job_id: id).first
+      def execution
+        %w[ready claimed failed].reduce(nil) do |acc, status|
+          acc || public_send("#{status}_execution")
         end
-
-        def execution
-          %w[ ready claimed failed ].reduce(nil) do |acc, status|
-            acc || public_send("#{status}_execution")
-          end
-        end
+      end
     end
   end
 end

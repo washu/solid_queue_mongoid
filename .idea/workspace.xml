@@ -4,8 +4,83 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="0.2.0 commit, see README and CHANGELOG">
-      <change beforePath="$PROJECT_DIR$/.github/workflows/ci.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/ci.yml" afterDir="false" />
+    <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="fixed rubcop checks">
+      <change beforePath="$PROJECT_DIR$/.claude/settings.local.json" beforeDir="false" afterPath="$PROJECT_DIR$/.claude/settings.local.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/solid_queue_mongoid.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/solid_queue_mongoid.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.rubocop.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.rubocop.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/blocked_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/blocked_execution.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/claimed_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/claimed_execution.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/classes.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/classes.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/execution.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/execution/job_attributes.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/execution/job_attributes.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/failed_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/failed_execution.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/clearable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/clearable.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/concurrency_controls.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/concurrency_controls.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/executable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/executable.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/recurrable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/recurrable.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/retryable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/retryable.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/schedulable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/schedulable.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/process.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/process.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/process/executor.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/process/executor.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/process/prunable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/process/prunable.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/queue.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/queue.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/queue_selector.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/queue_selector.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/ready_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/ready_execution.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/record.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/record.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_execution.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_task.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_task.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_task/arguments.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_task/arguments.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/scheduled_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/scheduled_execution.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/semaphore.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/semaphore.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/tasks/solid_queue_mongoid.rake" beforeDir="false" afterPath="$PROJECT_DIR$/lib/tasks/solid_queue_mongoid.rake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/solid_queue_mongoid.gemspec" beforeDir="false" afterPath="$PROJECT_DIR$/solid_queue_mongoid.gemspec" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/contract/api_contract_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/contract/api_contract_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/debug_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/debug_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/Rakefile" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/Rakefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/app/controllers/application_controller.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/app/controllers/application_controller.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/app/helpers/application_helper.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/app/helpers/application_helper.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/app/jobs/application_job.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/app/jobs/application_job.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/brakeman" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/brakeman" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/bundler-audit" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/bundler-audit" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/ci" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/ci" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/dev" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/dev" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/rails" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/rails" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/rake" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/rake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/rubocop" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/rubocop" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/setup" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/setup" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/bin/thrust" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/bin/thrust" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config.ru" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config.ru" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/application.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/application.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/boot.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/boot.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/ci.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/ci.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/environment.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/environment.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/environments/development.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/environments/development.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/environments/production.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/environments/production.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/environments/test.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/environments/test.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/initializers/content_security_policy.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/initializers/content_security_policy.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/initializers/filter_parameter_logging.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/initializers/filter_parameter_logging.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/initializers/inflections.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/initializers/inflections.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/puma.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/puma.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/dummy/config/routes.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/dummy/config/routes.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/integration/concurrency_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/integration/concurrency_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/integration/railtie_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/integration/railtie_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/blocked_execution_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/blocked_execution_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/claimed_execution_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/claimed_execution_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/execution_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/execution_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/job/clearable_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/job/clearable_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/job/retryable_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/job/retryable_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/job_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/job_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/process_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/process_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/ready_execution_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/ready_execution_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/record_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/record_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/recurring_execution_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/recurring_execution_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/recurring_task_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/recurring_task_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/semaphore_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/semaphore_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/solid_queue_mongoid_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/solid_queue_mongoid_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/spec_helper.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/spec_helper.rb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -178,7 +253,7 @@
       <workItem from="1772032095816" duration="7274000" />
       <workItem from="1774875815039" duration="26961000" />
       <workItem from="1775756584942" duration="17331000" />
-      <workItem from="1775842470364" duration="1002000" />
+      <workItem from="1775842470364" duration="3096000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit udpate">
       <option name="closed" value="true" />
@@ -268,7 +343,23 @@
       <option name="project" value="LOCAL" />
       <updated>1775843323123</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="CI fixes">
+      <option name="closed" value="true" />
+      <created>1775843771409</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1775843771409</updated>
+    </task>
+    <task id="LOCAL-00013" summary="fixed rubcop checks">
+      <option name="closed" value="true" />
+      <created>1775843990017</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1775843990017</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -295,7 +386,9 @@
     <MESSAGE value="commit 3, should be on parity with solid_queue" />
     <MESSAGE value="commit 4, should be on parity with solid_queue 1.4 now." />
     <MESSAGE value="0.2.0 commit, see README and CHANGELOG" />
-    <option name="LAST_COMMIT_MESSAGE" value="0.2.0 commit, see README and CHANGELOG" />
+    <MESSAGE value="CI fixes" />
+    <MESSAGE value="fixed rubcop checks" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed rubcop checks" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

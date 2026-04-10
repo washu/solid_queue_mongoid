@@ -19,17 +19,17 @@ module SolidQueue
         Mongoid.transaction do
           SolidQueue.instrument(:dispatch_scheduled, batch_size: batch_size) do |payload|
             job_ids = next_batch(batch_size).pluck(:job_id)
-            if job_ids.empty?
-              payload[:size] = 0
-            else
-              payload[:size] = dispatch_jobs(job_ids)
-            end
+            payload[:size] = if job_ids.empty?
+                               0
+                             else
+                               dispatch_jobs(job_ids)
+                             end
             payload[:size]
           end
         end
       end
 
-      alias_method :dispatch_due_batch, :dispatch_next_batch
+      alias dispatch_due_batch dispatch_next_batch
     end
 
     # Instance method: dispatch this single execution if the job is due now.
@@ -37,8 +37,7 @@ module SolidQueue
     def dispatch
       return unless job.due?
 
-      self.class.dispatch_jobs([ job_id ])
+      self.class.dispatch_jobs([job_id])
     end
   end
 end
-

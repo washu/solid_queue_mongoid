@@ -7,7 +7,7 @@ module SolidQueue
 
       included do
         # Processes whose heartbeat is older than the alive threshold
-        scope :prunable, -> {
+        scope :prunable, lambda {
           where(:last_heartbeat_at.lte => SolidQueue.process_alive_threshold.ago)
         }
       end
@@ -47,4 +47,3 @@ module SolidQueue
     end
   end
 end
-

@@ -22,7 +22,8 @@ module SolidQueue
   end
 
   class Pause < Record; end
-  class Queue; end  # plain Ruby class — not Mongoid-backed
+  # plain Ruby class — not Mongoid-backed
+  class Queue; end
   class Semaphore < Record; end
 
   class RecurringTask < Record
