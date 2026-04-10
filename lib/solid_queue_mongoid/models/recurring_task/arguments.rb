@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "active_job/serializers"
 require "active_job/arguments"
 
 module SolidQueue
