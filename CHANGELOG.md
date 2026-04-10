@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-10
+
+### Changed
+- `fixed CI.yml`
+- `fixed Rubocop settings and results.`
+
 ## [0.2.0] - 2026-04-10
 
 ### Added
