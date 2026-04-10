@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "mongoid", "~> 9.0"
-  spec.add_dependency "solid_queue", "~> 1.0"
+  spec.add_dependency "solid_queue", ">= 1.4.0", "< 2.0"
   spec.add_dependency "fugit", "~> 1.11"
 
   # For more information and examples about making a new gem, check out our

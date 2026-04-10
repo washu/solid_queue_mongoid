@@ -1,10 +1,10 @@
 PATH
   remote: .
   specs:
-    solid_queue_mongoid (0.1.0)
+    solid_queue_mongoid (0.2.0)
       fugit (~> 1.11)
       mongoid (~> 9.0)
-      solid_queue (~> 1.0)
+      solid_queue (>= 1.4.0, < 2.0)
 
 GEM
   remote: https://rubygems.org/
