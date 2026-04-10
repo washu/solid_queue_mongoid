@@ -17,11 +17,13 @@ module SolidQueue
     index({ key: 1 }, { unique: true })
 
     scope :static, -> { where(static: true) }
+    scope :dynamic, -> { where(static: false) }
 
     validates :key, presence: true
 
     validate :ensure_schedule_supported
     validate :ensure_command_or_class_present
+    validate :ensure_existing_job_class
 
     has_many :recurring_executions, foreign_key: :task_key, primary_key: :key,
              class_name: "SolidQueue::RecurringExecution"
@@ -44,8 +46,16 @@ module SolidQueue
           queue_name: options[:queue].presence,
           priority: options[:priority].presence,
           description: options[:description],
-          static: true
+          static: options.fetch(:static, true)
         )
+      end
+
+      def create_dynamic_task(key, **options)
+        from_configuration(key, **options.merge(static: false)).save!
+      end
+
+      def delete_dynamic_task(key)
+        RecurringTask.dynamic.find_by!(key: key).destroy
       end
 
       # Upsert all static tasks; used by Scheduler::RecurringSchedule#persist_tasks.
@@ -131,6 +141,12 @@ module SolidQueue
     def ensure_command_or_class_present
       unless command.present? || class_name.present?
         errors.add :base, :command_and_class_blank, message: "either command or class must be present"
+      end
+    end
+
+    def ensure_existing_job_class
+      if class_name.present? && job_class.nil?
+        errors.add :class_name, :undefined, message: "doesn't correspond to an existing class"
       end
     end
 

@@ -6,10 +6,10 @@ source "https://rubygems.org"
 gemspec
 
 gem "rake", "~> 13.0"
-
+# rspec
 gem "rspec", "~> 3.0"
 gem "rspec-rails", require: false
-
+# simple cov
 gem "simplecov", require: false
-
+# rubocop
 gem "rubocop", "~> 1.21"

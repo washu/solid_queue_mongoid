@@ -89,6 +89,9 @@ end
 
 ensure_mongodb_running
 
+# Minimal stub used by recurring_task specs that reference a job class by name.
+class MyJob; end
+
 # ---------------------------------------------------------------------------
 # RSpec configuration
 # ---------------------------------------------------------------------------

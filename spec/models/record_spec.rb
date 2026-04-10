@@ -37,6 +37,32 @@ RSpec.describe SolidQueue::Record do
     end
   end
 
+  describe ".use_index" do
+    it "returns a chainable relation when given a known index name" do
+      result = SolidQueue::BlockedExecution.use_index(:index_solid_queue_blocked_executions_for_release)
+      expect(result).to respond_to(:where)
+    end
+
+    it "returns all (no hint) for an unknown index name" do
+      result = SolidQueue::Job.use_index(:nonexistent_index)
+      expect(result).to respond_to(:where)
+    end
+
+    it "accepts a hash spec directly" do
+      result = SolidQueue::Job.use_index({ _id: 1 })
+      expect(result).to respond_to(:where)
+    end
+
+    it "can be chained with where and still execute" do
+      expect {
+        SolidQueue::BlockedExecution
+          .use_index(:index_solid_queue_blocked_executions_for_release)
+          .where(concurrency_key: "test")
+          .count
+      }.not_to raise_error
+    end
+  end
+
   describe "timestamps" do
     it "includes created_at and updated_at" do
       job = SolidQueue::Job.create!(

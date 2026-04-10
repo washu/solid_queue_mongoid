@@ -4,43 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="initial commit udpate 3 should al lbe fixes">
-      <change beforePath="$PROJECT_DIR$/.github/workflows/ci.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/ci.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+    <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="commit 3, should be on parity with solid_queue">
+      <change beforePath="$PROJECT_DIR$/.claude/settings.local.json" beforeDir="false" afterPath="$PROJECT_DIR$/.claude/settings.local.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/solid_queue_mongoid.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/solid_queue_mongoid.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Gemfile" beforeDir="false" afterPath="$PROJECT_DIR$/Gemfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Gemfile.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Gemfile.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HANDOFF.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid.rb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/blocked_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/blocked_execution.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/claimed_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/claimed_execution.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/classes.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/classes.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/execution.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/execution/job_attributes.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/execution/job_attributes.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/failed_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/failed_execution.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/concurrency_controls.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/concurrency_controls.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/executable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/executable.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/retryable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/retryable.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/schedulable.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/job/schedulable.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/process.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/process.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/queue.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/queue.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/queue_selector.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/queue_selector.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/ready_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/ready_execution.rb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/record.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/record.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_execution.rb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_task.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/recurring_task.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/scheduled_execution.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/scheduled_execution.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/semaphore.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/models/semaphore.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/solid_queue_mongoid/railtie.rb" beforeDir="false" afterPath="$PROJECT_DIR$/lib/solid_queue_mongoid/railtie.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/models/claimed_execution_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/claimed_execution_spec.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/models/job_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/job_spec.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/models/queue_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/queue_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/blocked_execution_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/blocked_execution_spec.rb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/spec/models/record_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/record_spec.rb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/spec/models/recurring_task_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/recurring_task_spec.rb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/spec/models/semaphore_spec.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/models/semaphore_spec.rb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/spec/spec_helper.rb" beforeDir="false" afterPath="$PROJECT_DIR$/spec/spec_helper.rb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -63,7 +39,7 @@
     </selectedModels>
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="7727" />
+    <option name="cachedIndexableFilesCount" value="11029" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
@@ -201,7 +177,7 @@
       <workItem from="1772027623938" duration="3911000" />
       <workItem from="1772032095816" duration="7274000" />
       <workItem from="1774875815039" duration="26961000" />
-      <workItem from="1775756584942" duration="14776000" />
+      <workItem from="1775756584942" duration="16773000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit udpate">
       <option name="closed" value="true" />
@@ -227,7 +203,23 @@
       <option name="project" value="LOCAL" />
       <updated>1774992658037</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="commit 3, should be on parity with solid_queue">
+      <option name="closed" value="true" />
+      <created>1775823236207</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1775823236207</updated>
+    </task>
+    <task id="LOCAL-00005" summary="commit 3, should be on parity with solid_queue">
+      <option name="closed" value="true" />
+      <created>1775823276452</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1775823276452</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -251,7 +243,8 @@
     <MESSAGE value="initial commit udpate" />
     <MESSAGE value="initial commit udpate 2 some more specs and test fixes" />
     <MESSAGE value="initial commit udpate 3 should al lbe fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="initial commit udpate 3 should al lbe fixes" />
+    <MESSAGE value="commit 3, should be on parity with solid_queue" />
+    <option name="LAST_COMMIT_MESSAGE" value="commit 3, should be on parity with solid_queue" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

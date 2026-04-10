@@ -9,8 +9,13 @@ module SolidQueue
 
     before_create :set_expires_at
 
-    index({ concurrency_key: 1, created_at: 1 })
-    index({ expires_at: 1 })
+    index({ concurrency_key: 1, priority: 1, job_id: 1 })
+    index({ expires_at: 1, concurrency_key: 1 })
+
+    INDEX_HINTS = {
+      index_solid_queue_blocked_executions_for_release: { concurrency_key: 1, priority: 1, job_id: 1 },
+      index_solid_queue_blocked_executions_for_maintenance: { expires_at: 1, concurrency_key: 1 }
+    }.freeze
 
     scope :expired, -> { where(:expires_at.lt => Time.current) }
 
@@ -53,10 +58,11 @@ module SolidQueue
       end
 
       def release_one(concurrency_key)
-        Mongoid.transaction do
-          execution = ordered.where(concurrency_key: concurrency_key).limit(1).first
-          execution ? execution.release : false
-        end
+        # Note: no outer Mongoid.transaction here — #release already wraps its work
+        # in a transaction. MongoDB does not support nested sessions, so wrapping
+        # again would cause InvalidSessionNesting errors.
+        execution = ordered.where(concurrency_key: concurrency_key).limit(1).first
+        execution ? execution.release : false
       end
 
       private

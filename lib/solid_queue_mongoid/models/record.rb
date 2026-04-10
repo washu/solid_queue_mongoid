@@ -5,6 +5,9 @@ module SolidQueue
     include Mongoid::Document
     include Mongoid::Timestamps
 
+    # Subclasses declare their MySQL index name → MongoDB field spec mappings here.
+    INDEX_HINTS = {}.freeze
+
     # Override Mongoid's index_specifications to use per-class instance variables
     # instead of the shared cattr_accessor class variable.
     # This prevents index cross-contamination between models.
@@ -47,6 +50,16 @@ module SolidQueue
       # code that chains .non_blocking_lock still works.
       def non_blocking_lock
         all
+      end
+
+      # Translate solid_queue MySQL index names to MongoDB hint specs and apply
+      # via Mongoid's .hint(). Unknown names are ignored (no hint applied).
+      # Subclasses may override INDEX_HINTS to register their own mappings.
+      def use_index(*indexes)
+        specs = indexes.filter_map do |name|
+          name.is_a?(Hash) ? name : self::INDEX_HINTS[name.to_sym]
+        end
+        specs.any? ? hint(specs.first) : all
       end
 
       # MongoDB supports unique indexes which serve the same purpose.
