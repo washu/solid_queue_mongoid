@@ -23,7 +23,9 @@
       "Bash(cat /Users/washu/Projects/solid_queue_mongoid/vendor/bundle/ruby/3.3.0/gems/solid_queue-1*/app/models/solid_queue/failed_execution.rb)",
       "Bash(git remote:*)",
       "WebFetch(domain:api.github.com)",
-      "Bash(grep -E \"example|failure|FAILED|✓|·|F$|passed|failed\")"
+      "Bash(grep -E \"example|failure|FAILED|✓|·|F$|passed|failed\")",
+      "Bash(gh run:*)",
+      "Bash(gh auth:*)"
     ]
   }
 }
