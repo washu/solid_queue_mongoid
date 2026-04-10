@@ -5,7 +5,7 @@ module SolidQueue
     class AlreadyRecorded < StandardError; end
 
     field :task_key, type: String
-    field :run_at,   type: Time
+    field :run_at, type: Time
 
     # optional: job may have been purged already
     belongs_to :job, class_name: "SolidQueue::Job", optional: true
@@ -23,17 +23,17 @@ module SolidQueue
       # Called by RecurringTask#enqueue_and_record.
       # Wraps the block; records the execution only if the job was successfully enqueued.
       def record(task_key, run_at, &block)
-        active_job = block.call
-
-        if active_job && active_job.successfully_enqueued?
-          create_or_insert!(
-            task_key: task_key,
-            run_at:   run_at,
-            job_id:   active_job.provider_job_id
-          )
+        Mongoid.transaction do
+          block.call.tap do |active_job|
+            if active_job && active_job.successfully_enqueued?
+              create_or_insert!(
+                task_key: task_key,
+                run_at: run_at,
+                job_id: active_job.provider_job_id
+              )
+            end
+          end
         end
-
-        active_job
       end
 
       # Atomic insert — raises AlreadyRecorded on duplicate (same task_key + run_at).
@@ -53,9 +53,9 @@ module SolidQueue
 
       private
 
-        def duplicate_key_error?(err)
-          err.message.to_s.include?("E11000") || err.message.to_s.include?("duplicate key")
-        end
+      def duplicate_key_error?(err)
+        err.message.to_s.include?("E11000") || err.message.to_s.include?("duplicate key")
+      end
     end
   end
 end

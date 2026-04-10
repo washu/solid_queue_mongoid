@@ -5,18 +5,18 @@ module SolidQueue
     include Process::Executor
     include Process::Prunable
 
-    field :kind,              type: String
-    field :name,              type: String
-    field :hostname,          type: String
-    field :pid,               type: Integer
-    field :supervisor_id,     type: BSON::ObjectId
-    field :metadata,          type: Hash,   default: {}
+    field :kind, type: String
+    field :name, type: String
+    field :hostname, type: String
+    field :pid, type: Integer
+    field :supervisor_id, type: BSON::ObjectId
+    field :metadata, type: Hash, default: {}
     field :last_heartbeat_at, type: Time
 
     belongs_to :supervisor, class_name: "SolidQueue::Process", optional: true,
                inverse_of: :supervisees
-    has_many   :supervisees, class_name: "SolidQueue::Process",
-               inverse_of: :supervisor, foreign_key: :supervisor_id
+    has_many :supervisees, class_name: "SolidQueue::Process",
+             inverse_of: :supervisor, foreign_key: :supervisor_id
 
     index({ hostname: 1, pid: 1 })
     index({ last_heartbeat_at: 1 })
@@ -64,8 +64,8 @@ module SolidQueue
 
     private
 
-      def supervised?
-        supervisor_id.present?
-      end
+    def supervised?
+      supervisor_id.present?
+    end
   end
 end

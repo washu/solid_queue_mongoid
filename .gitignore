@@ -9,3 +9,10 @@
 
 # rspec failure tracking
 .rspec_status
+
+# Dummy Rails app generated artifacts
+/spec/dummy/log/
+/spec/dummy/tmp/
+/spec/dummy/storage/
+/spec/dummy/.kamal/
+/spec/dummy/Gemfile.lock

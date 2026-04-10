@@ -10,8 +10,8 @@ module SolidQueue
                         default: %i[ queue_name priority ]
 
         field :queue_name, type: String
-        field :priority,   type: Integer, default: 0
-        field :job_id,     type: BSON::ObjectId
+        field :priority, type: Integer, default: 0
+        field :job_id, type: BSON::ObjectId
 
         index({ queue_name: 1, priority: 1, created_at: 1 })
 
@@ -44,11 +44,11 @@ module SolidQueue
 
       private
 
-        def assume_attributes_from_job
-          self.class.assumable_attributes_from_job.each do |attr|
-            send("#{attr}=", job.send(attr)) if job.respond_to?(attr)
-          end
+      def assume_attributes_from_job
+        self.class.assumable_attributes_from_job.each do |attr|
+          send("#{attr}=", job.send(attr)) if job.respond_to?(attr)
         end
+      end
     end
   end
 end

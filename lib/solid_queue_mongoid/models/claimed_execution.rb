@@ -2,7 +2,7 @@
 
 module SolidQueue
   class ClaimedExecution < Execution
-    assumes_attributes_from_job  # inherits queue_name and priority from job
+    assumes_attributes_from_job # inherits queue_name and priority from job
 
     field :process_id, type: BSON::ObjectId
 
@@ -11,7 +11,7 @@ module SolidQueue
     # Executions whose process_id references a process that no longer exists.
     scope :orphaned, -> {
       existing_process_ids = SolidQueue::Process.all.pluck(:id)
-      where(:process_id.nin => existing_process_ids)
+      existing_process_ids.empty? ? all : where(:process_id.nin => existing_process_ids)
     }
 
     index({ process_id: 1 })
@@ -66,17 +66,17 @@ module SolidQueue
             execution.unblock_next_job
           end
           payload[:process_ids] = executions.map(&:process_id).uniq
-          payload[:job_ids]     = executions.map(&:job_id).uniq
-          payload[:size]        = executions.size
+          payload[:job_ids] = executions.map(&:job_id).uniq
+          payload[:size] = executions.size
         end
       end
 
       def discard_all_in_batches(*)
-        raise UndiscardableError, "Can't discard jobs in progress"
+        raise Execution::UndiscardableError, "Can't discard jobs in progress"
       end
 
       def discard_all_from_jobs(*)
-        raise UndiscardableError, "Can't discard jobs in progress"
+        raise Execution::UndiscardableError, "Can't discard jobs in progress"
       end
     end
 
@@ -103,12 +103,14 @@ module SolidQueue
     end
 
     def discard
-      raise UndiscardableError, "Can't discard a job in progress"
+      raise Execution::UndiscardableError, "Can't discard a job in progress"
     end
 
     def failed_with(error)
-      job.failed_with(error)
-      destroy!
+      Mongoid.transaction do
+        job.failed_with(error)
+        destroy!
+      end
     end
 
     def unblock_next_job
@@ -117,16 +119,18 @@ module SolidQueue
 
     private
 
-      def execute
-        ActiveJob::Base.execute(job.arguments.merge("provider_job_id" => job.id.to_s))
-        Result.new(true, nil)
-      rescue Exception => e
-        Result.new(false, e)
-      end
+    def execute
+      ActiveJob::Base.execute(job.arguments.merge("provider_job_id" => job.id.to_s))
+      Result.new(true, nil)
+    rescue Exception => e
+      Result.new(false, e)
+    end
 
-      def finished
+    def finished
+      Mongoid.transaction do
         job.finished!
-        destroy! if persisted?
+        destroy!
       end
+    end
   end
 end

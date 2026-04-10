@@ -72,4 +72,117 @@ RSpec.describe SolidQueue::RecurringTask do
       expect(described_class.static.first.key).to eq("static_t")
     end
   end
+
+  describe "#previous_time" do
+    let(:task) { described_class.new(key: "t", schedule: "0 * * * *", class_name: "MyJob", queue_name: "default") }
+
+    it "returns a past time" do
+      expect(task.previous_time).to be < Time.current
+    end
+  end
+
+  describe "#to_s" do
+    it "includes class name and schedule" do
+      task = described_class.new(key: "t", schedule: "0 * * * *",
+                                  class_name: "MyJob", arguments: [], queue_name: "default")
+      expect(task.to_s).to include("MyJob")
+      expect(task.to_s).to include("0 * * * *")
+    end
+  end
+
+  describe "#attributes_for_upsert" do
+    it "excludes _id, id, and key" do
+      task = described_class.create!(key: "upsert_t", schedule: "0 * * * *",
+                                      class_name: "MyJob", queue_name: "default")
+      attrs = task.attributes_for_upsert
+      expect(attrs.keys).not_to include("_id", "id", "key")
+      expect(attrs["class_name"]).to eq("MyJob")
+    end
+  end
+
+  describe "validations" do
+    it "rejects an unsupported schedule format" do
+      task = described_class.new(key: "bad", schedule: "not-a-cron", class_name: "MyJob")
+      expect(task).not_to be_valid
+      expect(task.errors[:schedule]).to be_present
+    end
+
+    it "requires either command or class_name" do
+      task = described_class.new(key: "no-class-or-cmd", schedule: "0 * * * *")
+      expect(task).not_to be_valid
+      expect(task.errors[:base]).to be_present
+    end
+
+    it "is valid with a command instead of class_name" do
+      task = described_class.new(key: "cmd_task", schedule: "0 * * * *", command: "ls -la")
+      expect(task).to be_valid
+    end
+  end
+
+  describe "#last_enqueued_time" do
+    let(:task) do
+      described_class.create!(key: "last_enq", schedule: "0 * * * *",
+                               class_name: "MyJob", queue_name: "default")
+    end
+
+    it "returns nil when no recurring executions exist" do
+      expect(task.last_enqueued_time).to be_nil
+    end
+
+    it "returns the maximum run_at from recurring executions" do
+      t1 = 2.hours.ago
+      t2 = 1.hour.ago
+      SolidQueue::RecurringExecution.create!(task_key: task.key, run_at: t1)
+      SolidQueue::RecurringExecution.create!(task_key: task.key, run_at: t2)
+
+      expect(task.last_enqueued_time).to be_within(1.second).of(t2)
+    end
+  end
+
+  describe "#enqueue" do
+    let(:run_at) { Time.current }
+
+    context "when using a non-solid_queue adapter" do
+      let(:task) do
+        described_class.new(key: "enq_task", schedule: "0 * * * *",
+                             class_name: "MyJob", queue_name: "default")
+      end
+
+      it "records enqueue_error in payload when job fails to enqueue" do
+        fake_job = double("active_job",
+          successfully_enqueued?: false,
+          enqueue_error:          double(message: "queue full"),
+          job_id:                 nil
+        )
+        fake_class = double("MyJob",
+          queue_adapter_name: "test",
+          new:                fake_job
+        )
+        allow(fake_job).to receive(:enqueue).and_return(fake_job)
+        allow(task).to receive(:job_class).and_return(fake_class)
+        allow(task).to receive(:using_solid_queue_adapter?).and_return(false)
+
+        # When enqueue fails, the job object is still returned (not false);
+        # the error is surfaced in the instrument payload.
+        result = task.enqueue(at: run_at)
+        expect(result).to eq(fake_job)
+      end
+    end
+
+    context "when AlreadyRecorded is raised" do
+      let(:task) do
+        described_class.new(key: "dup_task", schedule: "0 * * * *",
+                             class_name: "MyJob", queue_name: "default")
+      end
+
+      it "returns false and skips silently" do
+        allow(task).to receive(:using_solid_queue_adapter?).and_return(true)
+        allow(task).to receive(:enqueue_and_record)
+          .and_raise(SolidQueue::RecurringExecution::AlreadyRecorded)
+
+        result = task.enqueue(at: run_at)
+        expect(result).to be false
+      end
+    end
+  end
 end

@@ -4,6 +4,8 @@ module SolidQueue
   class Execution < Record
     include JobAttributes
 
+    class UndiscardableError < StandardError; end
+
     scope :ordered, -> { order_by(priority: :asc, job_id: :asc) }
 
     class << self
@@ -14,6 +16,8 @@ module SolidQueue
       def create_all_from_jobs(jobs)
         jobs.each do |job|
           attrs = attributes_from_job(job).merge(job_id: job.id)
+          next if where(job_id: job.id).exists?
+
           create_or_find_by!(attrs)
         end
       end
@@ -42,9 +46,9 @@ module SolidQueue
 
       private
 
-        def discard_jobs(job_ids)
-          Job.where(:id.in => job_ids).delete_all
-        end
+      def discard_jobs(job_ids)
+        Job.where(:id.in => job_ids).delete_all
+      end
     end
 
     def type

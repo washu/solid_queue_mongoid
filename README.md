@@ -18,6 +18,14 @@ And then execute:
 bundle install
 ```
 
+## How It Works
+
+`solid_queue_mongoid` defines its Mongoid models in the `SolidQueue::` namespace and then requires `solid_queue` for you. This means you only need one gem in your Gemfile — `solid_queue` is pulled in automatically as a dependency.
+
+In Rails, the gem's Railtie runs before Rails freezes `eager_load_paths` and tells Zeitwerk to ignore SolidQueue's `app/models` directory, so the ActiveRecord model files are never autoloaded.
+
+No special require ordering is needed in your application.
+
 ## Configuration
 
 ### 1. Configure Mongoid
@@ -115,7 +123,6 @@ With the default `collection_prefix` of `"solid_queue_"`, your collections will 
 - `solid_queue_pauses`
 - `solid_queue_semaphores`
 - `solid_queue_recurring_tasks`
-- `solid_queue_queues`
 
 This prefix ensures that SolidQueue collections won't conflict with any existing collections in your database.
 
@@ -126,6 +133,16 @@ bundle exec rake solid_queue_mongoid:show_collections
 ```
 
 ## Usage
+
+### 4. Configure the ActiveJob Adapter
+
+In `config/application.rb` (or the appropriate environment file):
+
+```ruby
+config.active_job.queue_adapter = :solid_queue
+```
+
+### Enqueuing Jobs
 
 Once configured, use SolidQueue exactly as you would with ActiveRecord:
 
@@ -219,7 +236,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/solid_queue_mongoid. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/[USERNAME]/solid_queue_mongoid/blob/main/CODE_OF_CONDUCT.md).
+Bug reports and pull requests are welcome on GitHub at https://github.com/salsalabs/solid_queue_mongoid. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/salsalabs/solid_queue_mongoid/blob/main/CODE_OF_CONDUCT.md).
 
 ## License
 
@@ -227,4 +244,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the SolidQueueMongoid project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/solid_queue_mongoid/blob/main/CODE_OF_CONDUCT.md).
+Everyone interacting in the SolidQueueMongoid project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/salsalabs/solid_queue_mongoid/blob/main/CODE_OF_CONDUCT.md).

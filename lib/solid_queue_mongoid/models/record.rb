@@ -31,7 +31,7 @@ module SolidQueue
       super
 
       collection_name = subclass.name.demodulize.tableize
-      prefixed_name   = "#{SolidQueue.collection_prefix}#{collection_name}"
+      prefixed_name = "#{SolidQueue.collection_prefix}#{collection_name}"
 
       subclass.store_in collection: prefixed_name, client: -> { SolidQueue.client.to_s }
 
@@ -58,23 +58,18 @@ module SolidQueue
       # We wrap in a MongoDB session transaction when available; fall back to a
       # plain yield for non-replica-set environments (e.g. tests with a standalone).
       def transaction(requires_new: false, &block)
-        begin
-          Mongoid::QueryCache.clear_cache
-          Mongoid.default_client.with_session do |session|
-            session.start_transaction
-            result = yield
-            session.commit_transaction
-            result
-          end
-        rescue Mongo::Error::InvalidSession, Mongo::Error::OperationFailure => e
-          # Not in a replica set or session not supported — execute without transaction
-          raise if e.message.to_s.include?("Transaction numbers are only allowed")
-          yield
-        rescue => e
-          yield
+        Mongoid::QueryCache.clear_cache
+        Mongoid.default_client.with_session do |session|
+          session.start_transaction
+          result = yield
+          session.commit_transaction
+          result
         end
-      rescue
-        # Last resort: just execute the block
+      rescue Mongo::Error::InvalidSession, Mongo::Error::OperationFailure => e
+        # Not in a replica set or session not supported — execute without transaction
+        raise if e.message.to_s.include?("Transaction numbers are only allowed")
+        yield
+      rescue StandardError
         yield
       end
 
@@ -107,31 +102,31 @@ module SolidQueue
 
       private
 
-        def duplicate_key_error?(err)
-          msg = err.respond_to?(:message) ? err.message.to_s : err.to_s
-          msg.include?("E11000") || msg.include?("duplicate key")
-        end
+      def duplicate_key_error?(err)
+        msg = err.respond_to?(:message) ? err.message.to_s : err.to_s
+        msg.include?("E11000") || msg.include?("duplicate key")
+      end
 
-        # Try to find an existing record using just the unique key field(s).
-        # Used as fallback when find_by(full_attrs) misses because some fields
-        # (e.g. queue_name) are only set by callbacks, not passed in attrs.
-        # Uses where().first to avoid DocumentNotFound exceptions.
-        def find_by_unique_key(attrs)
-          return where(job_id: attrs[:job_id]).first if attrs[:job_id]
-          return where(key: attrs[:key]).first        if attrs[:key]
-          nil
-        end
+      # Try to find an existing record using just the unique key field(s).
+      # Used as fallback when find_by(full_attrs) misses because some fields
+      # (e.g. queue_name) are only set by callbacks, not passed in attrs.
+      # Uses where().first to avoid DocumentNotFound exceptions.
+      def find_by_unique_key(attrs)
+        return where(job_id: attrs[:job_id]).first if attrs[:job_id]
+        return where(key: attrs[:key]).first if attrs[:key]
+        nil
+      end
 
-        def uniqueness_only_error?(document)
-          return false unless document.respond_to?(:errors)
-          document.errors.all? do |error|
-            error.type == :taken || error.message.to_s.include?("already been taken") ||
-              (error.attribute.to_s != "base" &&
-               document.class.validators
-                       .select { |v| v.is_a?(Mongoid::Validatable::UniquenessValidator) }
-                       .any? { |v| v.attributes.include?(error.attribute.to_sym) })
-          end
+      def uniqueness_only_error?(document)
+        return false unless document.respond_to?(:errors)
+        document.errors.all? do |error|
+          error.type == :taken || error.message.to_s.include?("already been taken") ||
+            (error.attribute.to_s != "base" &&
+              document.class.validators
+                      .select { |v| v.is_a?(Mongoid::Validatable::UniquenessValidator) }
+                      .any? { |v| v.attributes.include?(error.attribute.to_sym) })
         end
+      end
     end
   end
 end

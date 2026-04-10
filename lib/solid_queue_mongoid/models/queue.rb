@@ -1,63 +1,56 @@
 # frozen_string_literal: true
 
 module SolidQueue
-  # Queue is a Mongoid-backed model storing queue name and paused state.
-  # In solid_queue 1.3.x (AR) it is a plain Ruby class, but our specs
-  # treat it as a persisted model, so we make it a Record subclass.
-  class Queue < Record
-    field :name,   type: String
-    field :paused, type: Boolean, default: false
-
-    index({ name: 1 }, { unique: true })
-
-    validates :name, presence: true, uniqueness: true
+  # Plain Ruby class — mirrors upstream SolidQueue::Queue (1.3.x).
+  # State is derived from actual Job/Pause/ReadyExecution documents;
+  # no separate Queue collection is maintained.
+  class Queue
+    attr_accessor :name
 
     class << self
-      def find_or_create_by_name(name)
-        create_or_find_by!(name: name)
+      def all
+        Job.distinct(:queue_name).map { |queue_name| new(queue_name) }
       end
 
       def find_by_name(name)
-        where(name: name).first
-      end
-
-      def all_queues
-        all.map(&:name)
+        new(name)
       end
     end
 
-    def pause
-      update!(paused: true)
-      Pause.pause_queue(name)
-      self
-    end
-
-    def resume
-      update!(paused: false)
-      Pause.resume_queue(name)
-      self
+    def initialize(name)
+      @name = name
     end
 
     def paused?
-      paused == true
+      Pause.where(queue_name: name).exists?
     end
 
-    def size
-      ReadyExecution.queued_as(name).count
+    def pause
+      Pause.pause_queue(name)
     end
 
-    def latency
-      now = Time.current
-      oldest = ReadyExecution.queued_as(name).order_by(created_at: :asc).first&.created_at || now
-      (now - oldest).to_i
-    end
-
-    def human_latency
-      ActiveSupport::Duration.build(latency).inspect
+    def resume
+      Pause.resume_queue(name)
     end
 
     def clear
       ReadyExecution.queued_as(name).discard_all_in_batches
+    end
+
+    def size
+      @size ||= ReadyExecution.queued_as(name).count
+    end
+
+    def latency
+      @latency ||= begin
+        now = Time.current
+        oldest_enqueued_at = ReadyExecution.queued_as(name).min(:created_at) || now
+        (now - oldest_enqueued_at).to_i
+      end
+    end
+
+    def human_latency
+      ActiveSupport::Duration.build(latency).inspect
     end
 
     def ==(other)

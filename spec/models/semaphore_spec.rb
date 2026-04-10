@@ -44,14 +44,14 @@ RSpec.describe SolidQueue::Semaphore do
       expect(result).to be false
     end
 
-    it "signal increments value" do
+    it "signal decrements value (releases a used slot)" do
       described_class.wait(job)
       before = described_class.find_by(key: "resource_key").value
 
       described_class.signal(job)
       after = described_class.find_by(key: "resource_key").value
 
-      expect(after).to eq(before + 1)
+      expect(after).to eq(before - 1)
     end
   end
 
@@ -64,11 +64,11 @@ RSpec.describe SolidQueue::Semaphore do
       described_class.create!(key: "k2", value: 2)
     end
 
-    it "increments value for each job's concurrency key" do
+    it "decrements value for each job's concurrency key (releases used slots)" do
       described_class.signal_all([job1, job2])
 
-      expect(described_class.find_by(key: "k1").value).to eq(2)
-      expect(described_class.find_by(key: "k2").value).to eq(3)
+      expect(described_class.find_by(key: "k1").value).to eq(0)
+      expect(described_class.find_by(key: "k2").value).to eq(1)
     end
   end
 end

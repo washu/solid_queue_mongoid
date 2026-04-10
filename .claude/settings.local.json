@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__rubymine__list_directory_tree",
+      "Bash(gem contents:*)",
+      "Bash(bundle exec:*)",
+      "Bash(xargs cat:*)",
+      "Bash(bundle install:*)",
+      "Bash(COVERAGE=1 KEEP_MONGO=1 bundle exec rspec --format progress)",
+      "Bash(ruby -r json -e ':*)",
+      "Bash(KEEP_MONGO=1 bundle exec rspec spec/models/claimed_execution_spec.rb --format documentation)",
+      "Bash(KEEP_MONGO=1 bundle exec rspec --format documentation -e \"orphaned\")",
+      "Bash(KEEP_MONGO=1 bundle exec rspec spec/models/claimed_execution_spec.rb -e \"orphaned\" --format documentation)",
+      "Bash(grep -v \"^$\")",
+      "Bash(ruby -r:*)",
+      "Bash(KEEP_MONGO=1 bundle exec rspec spec/models/recurring_task_spec.rb --format documentation)",
+      "Bash(KEEP_MONGO=1 bundle exec rspec spec/integration/railtie_spec.rb --format documentation)",
+      "Bash(ls /Users/washu/Projects/solid_queue_mongoid/vendor/bundle/ruby/3.3.0/gems/solid_queue-1*/app/models/solid_queue/)",
+      "Bash(ls /Users/washu/Projects/solid_queue_mongoid/vendor/bundle/ruby/3.3.0/gems/solid_queue-1*/app/models/solid_queue/job/)",
+      "Bash(ls /Users/washu/Projects/solid_queue_mongoid/vendor/bundle/ruby/3.3.0/gems/solid_queue-1*/app/models/solid_queue/process/)",
+      "Bash(ls /Users/washu/Projects/solid_queue_mongoid/vendor/bundle/ruby/3.3.0/gems/solid_queue-1*/app/models/solid_queue/execution/)",
+      "Bash(ls /Users/washu/Projects/solid_queue_mongoid/vendor/bundle/ruby/3.3.0/gems/solid_queue-1*/app/models/solid_queue/recurring_task/)",
+      "Bash(cat /Users/washu/Projects/solid_queue_mongoid/vendor/bundle/ruby/3.3.0/gems/solid_queue-1*/app/models/solid_queue/failed_execution.rb)",
+      "Bash(git remote:*)"
+    ]
+  }
+}

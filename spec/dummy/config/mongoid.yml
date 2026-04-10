@@ -1,0 +1,8 @@
+test:
+  clients:
+    default:
+      hosts:
+        - <%= ENV.fetch("MONGODB_HOST", "localhost:27017") %>
+      database: solid_queue_mongoid_railtie_test
+      options:
+        server_selection_timeout: 5

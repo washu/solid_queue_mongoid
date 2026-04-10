@@ -8,6 +8,9 @@ if ENV["COVERAGE"]
   end
 end
 
+# Railtie integration spec has its own boot path — don't load it via this helper.
+# Run it directly: bundle exec rspec spec/integration/railtie_spec.rb
+
 require "active_support/all"
 require "active_job"
 require "rails"

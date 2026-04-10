@@ -5,7 +5,7 @@ module SolidQueue
     assumes_attributes_from_job :concurrency_key
 
     field :concurrency_key, type: String
-    field :expires_at,      type: Time
+    field :expires_at, type: Time
 
     before_create :set_expires_at
 
@@ -53,25 +53,25 @@ module SolidQueue
       end
 
       def release_one(concurrency_key)
-        ordered.where(concurrency_key: concurrency_key).limit(1).each do |execution|
-          return execution.release
+        Mongoid.transaction do
+          execution = ordered.where(concurrency_key: concurrency_key).limit(1).first
+          execution ? execution.release : false
         end
-        false
       end
 
       private
 
-        def releasable(concurrency_keys)
-          semaphores = Semaphore.where(:key.in => concurrency_keys).pluck(:key, :value, :limit)
-          # Build hash of key => [value, limit]
-          sem_map = semaphores.each_with_object({}) do |(key, value, limit), h|
-            h[key] = { value: value, limit: limit }
-          end
-
-          # Keys without semaphore (never acquired) + keys where value < limit (slot available)
-          (concurrency_keys - sem_map.keys) +
-            sem_map.select { |_key, s| s[:value] < s[:limit] }.keys
+      def releasable(concurrency_keys)
+        semaphores = Semaphore.where(:key.in => concurrency_keys).pluck(:key, :value, :limit)
+        # Build hash of key => [value, limit]
+        sem_map = semaphores.each_with_object({}) do |(key, value, limit), h|
+          h[key] = { value: value, limit: limit }
         end
+
+        # Keys without semaphore (never acquired) + keys where value < limit (slot available)
+        (concurrency_keys - sem_map.keys) +
+          sem_map.select { |_key, s| s[:value] < s[:limit] }.keys
+      end
     end
 
     def unblock
@@ -80,32 +80,36 @@ module SolidQueue
 
     def release
       SolidQueue.instrument(:release_blocked, job_id: job.id, concurrency_key: concurrency_key, released: false) do |payload|
-        if acquire_concurrency_lock
-          promote_to_ready
-          destroy!
-          payload[:released] = true
-          true
-        else
-          false
+        Mongoid.transaction do
+          if acquire_concurrency_lock
+            promote_to_ready
+            destroy!
+            payload[:released] = true
+            true
+          else
+            false
+          end
         end
       end
     end
 
     private
 
-      def set_expires_at
-        self.expires_at = job.concurrency_duration.from_now
-      end
+    def set_expires_at
+      self.expires_at = job.concurrency_duration.from_now
+    end
 
-      def acquire_concurrency_lock
-        Semaphore.wait(job)
-      end
+    def acquire_concurrency_lock
+      Semaphore.wait(job)
+    end
 
-      def promote_to_ready
-        ReadyExecution.create_or_find_by!(job_id: job_id) do |re|
-          re.queue_name = queue_name
-          re.priority   = priority
-        end
-      end
+    def promote_to_ready
+      existing = ReadyExecution.where(job_id: job_id).first
+      return existing if existing
+
+      ReadyExecution.create!(job_id: job_id, queue_name: queue_name, priority: priority)
+    rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure
+      ReadyExecution.where(job_id: job_id).first
+    end
   end
 end

@@ -123,11 +123,14 @@ module SolidQueue
       private
 
         def ready
-          re = ReadyExecution.create_or_find_by!(job_id: id) do |r|
-            r.queue_name = queue_name
-            r.priority   = priority
-          end
-          re.persisted? ? re : ReadyExecution.where(job_id: id).first
+          existing = ReadyExecution.where(job_id: id).first
+          return existing if existing
+
+          re = ReadyExecution.new(job_id: id)
+          re.queue_name = queue_name
+          re.priority   = priority
+          re.save!
+          re
         rescue Mongoid::Errors::Validations, Mongo::Error::OperationFailure
           ReadyExecution.where(job_id: id).first
         end

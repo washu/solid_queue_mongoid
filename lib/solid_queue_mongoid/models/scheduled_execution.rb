@@ -9,21 +9,23 @@ module SolidQueue
     field :scheduled_at, type: Time
 
     scope :due,        -> { where(:scheduled_at.lte => Time.current) }
-    scope :ordered,    -> { order_by(scheduled_at: :asc, priority: :asc, job_id: :asc) }
-    scope :next_batch, ->(batch_size) { due.ordered.limit(batch_size) }
+    scope :due_order,  -> { order_by(scheduled_at: :asc, priority: :asc, job_id: :asc) }
+    scope :next_batch, ->(batch_size) { due.due_order.limit(batch_size) }
 
     index({ scheduled_at: 1, priority: 1 })
 
     class << self
       def dispatch_next_batch(batch_size)
-        SolidQueue.instrument(:dispatch_scheduled, batch_size: batch_size) do |payload|
-          job_ids = next_batch(batch_size).pluck(:job_id)
-          if job_ids.empty?
-            payload[:size] = 0
-          else
-            payload[:size] = dispatch_jobs(job_ids)
+        Mongoid.transaction do
+          SolidQueue.instrument(:dispatch_scheduled, batch_size: batch_size) do |payload|
+            job_ids = next_batch(batch_size).pluck(:job_id)
+            if job_ids.empty?
+              payload[:size] = 0
+            else
+              payload[:size] = dispatch_jobs(job_ids)
+            end
+            payload[:size]
           end
-          payload[:size]
         end
       end
 

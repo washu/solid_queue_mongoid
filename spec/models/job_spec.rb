@@ -185,6 +185,91 @@ RSpec.describe SolidQueue::Job do
     end
   end
 
+  describe ".enqueue" do
+    it "creates a job and marks the active_job as successfully enqueued" do
+      active_job = double("active_job",
+        queue_name:   "default",
+        job_id:       "aj-123",
+        priority:     0,
+        scheduled_at: nil,
+        class:        double(name: "TestJob"),
+        serialize:    { "job_class" => "TestJob" },
+        try:          nil,
+        successfully_enqueued: false
+      )
+      allow(active_job).to receive(:scheduled_at=)
+      allow(active_job).to receive(:provider_job_id=)
+      allow(active_job).to receive(:successfully_enqueued=)
+      allow(active_job).to receive(:successfully_enqueued?).and_return(true)
+
+      job = described_class.enqueue(active_job)
+
+      expect(job).to be_persisted
+      expect(job.active_job_id).to eq("aj-123")
+    end
+  end
+
+  describe ".enqueue_all" do
+    it "enqueues multiple active jobs and returns count of successful ones" do
+      make_active_job = ->(id) {
+        double("aj_#{id}",
+          queue_name:   "default",
+          job_id:       id,
+          priority:     0,
+          scheduled_at: nil,
+          class:        double(name: "TestJob"),
+          serialize:    { "job_class" => "TestJob" },
+          try:          nil,
+          successfully_enqueued: false
+        ).tap do |aj|
+          allow(aj).to receive(:scheduled_at=)
+          allow(aj).to receive(:provider_job_id=)
+          allow(aj).to receive(:successfully_enqueued=)
+          allow(aj).to receive(:successfully_enqueued?).and_return(true)
+        end
+      }
+
+      active_jobs = [make_active_job.call("aj-1"), make_active_job.call("aj-2")]
+      count = described_class.enqueue_all(active_jobs)
+
+      expect(count).to eq(2)
+      expect(described_class.where(:active_job_id.in => ["aj-1", "aj-2"]).count).to eq(2)
+    end
+  end
+
+  describe "#finished!" do
+    it "sets finished_at and keeps the record when preserve_finished_jobs? is true" do
+      job = described_class.create!(queue_name: "default", class_name: "TestJob", arguments: {})
+      allow(SolidQueue).to receive(:preserve_finished_jobs?).and_return(true)
+
+      job.finished!
+
+      expect(job.reload.finished_at).to be_present
+    end
+
+    it "destroys the record when preserve_finished_jobs? is false" do
+      job = described_class.create!(queue_name: "default", class_name: "TestJob", arguments: {})
+      allow(SolidQueue).to receive(:preserve_finished_jobs?).and_return(false)
+
+      job.finished!
+
+      expect(described_class.where(id: job.id).exists?).to be false
+    end
+  end
+
+  describe "#status" do
+    it "returns :finished for a finished job" do
+      job = described_class.create!(queue_name: "default", class_name: "TestJob",
+                                     arguments: {}, finished_at: Time.current)
+      expect(job.status).to eq(:finished)
+    end
+
+    it "returns :ready for a job with a ready execution" do
+      job = described_class.create!(queue_name: "default", class_name: "TestJob", arguments: {})
+      expect(job.status).to eq(:ready)
+    end
+  end
+
   describe "scopes" do
     before do
       described_class.create!(

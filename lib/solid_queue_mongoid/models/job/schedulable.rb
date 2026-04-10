@@ -23,14 +23,14 @@ module SolidQueue
 
         private
 
-          def schedule_all_at_once(jobs)
-            ScheduledExecution.create_all_from_jobs(jobs)
-          end
+        def schedule_all_at_once(jobs)
+          ScheduledExecution.create_all_from_jobs(jobs)
+        end
 
-          def successfully_scheduled(jobs)
-            job_ids = jobs.map(&:id)
-            where(:id.in => ScheduledExecution.where(:job_id.in => job_ids).pluck(:job_id))
-          end
+        def successfully_scheduled(jobs)
+          job_ids = jobs.map(&:id)
+          where(:id.in => ScheduledExecution.where(:job_id.in => job_ids).pluck(:job_id))
+        end
       end
 
       # A job is due if it has no scheduled_at or it's in the past/present.
@@ -45,13 +45,13 @@ module SolidQueue
 
       private
 
-        def schedule
-          ScheduledExecution.create_or_find_by!(job_id: id)
-        end
+      def schedule
+        ScheduledExecution.create_or_find_by!(job_id: id)
+      end
 
-        def execution
-          super || scheduled_execution
-        end
+      def execution
+        super || scheduled_execution
+      end
     end
   end
 end

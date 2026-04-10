@@ -43,9 +43,9 @@ module SolidQueue
 
       private
 
-        def duplicate_key_error?(err)
-          err.message.to_s.include?("E11000") || err.message.to_s.include?("duplicate key")
-        end
+      def duplicate_key_error?(err)
+        err.message.to_s.include?("E11000") || err.message.to_s.include?("duplicate key")
+      end
     end
   end
 end

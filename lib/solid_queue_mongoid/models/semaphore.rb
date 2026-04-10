@@ -14,9 +14,9 @@ module SolidQueue
   # value = remaining available slots.  The specs and BlockedExecution logic here
   # both expect the "used slots" convention.
   class Semaphore < Record
-    field :key,        type: String
-    field :value,      type: Integer, default: 0   # number of currently USED slots
-    field :limit,      type: Integer, default: 1
+    field :key, type: String
+    field :value, type: Integer, default: 0 # number of currently USED slots
+    field :limit, type: Integer, default: 1
     field :expires_at, type: Time
 
     index({ key: 1 }, { unique: true })
@@ -24,10 +24,9 @@ module SolidQueue
 
     validates :key, presence: true, uniqueness: true
 
-    # "available" means at least one slot is in use (value > 0) which means
-    # there is a slot to be signalled — kept for API compatibility.
-    scope :available, -> { where(:value.lt => :limit) }  # room to acquire
-    scope :expired,   -> { where(:expires_at.lt => Time.current) }
+    # available: value < limit (at least one slot still free to acquire)
+    scope :available, -> { where("$expr" => { "$lt" => ["$value", "$limit"] }) }
+    scope :expired, -> { where(:expires_at.lt => Time.current) }
 
     class << self
       def wait(job)
@@ -54,9 +53,9 @@ module SolidQueue
 
       private
 
-        def duplicate_key_error?(err)
-          err.message.to_s.include?("E11000") || err.message.to_s.include?("duplicate key")
-        end
+      def duplicate_key_error?(err)
+        err.message.to_s.include?("E11000") || err.message.to_s.include?("duplicate key")
+      end
     end
 
     # ── Instance methods ──────────────────────────────────────────────────────
@@ -90,15 +89,15 @@ module SolidQueue
 
     # ── Proxy inner class ─────────────────────────────────────────────────────
     class Proxy
-      # Increment value for every job's semaphore key (signal = return a slot).
+      # Decrement value for every job's semaphore key (signal = release a used slot).
       def self.signal_all(jobs)
         keys = jobs.map(&:concurrency_key)
         return if keys.empty?
 
         Semaphore.in(key: keys).each do |sem|
           Semaphore.collection.find_one_and_update(
-            { _id: sem.id },
-            { "$inc" => { "value" => 1 } }
+            { _id: sem.id, "value" => { "$gt" => 0 } },
+            { "$inc" => { "value" => -1 } }
           )
         end
       end
@@ -120,59 +119,59 @@ module SolidQueue
         end
       end
 
-      # Release a slot: unconditionally increment value.
+      # Release a slot: decrement value (marks one used slot as freed).
       def signal
-        attempt_increment
+        attempt_release_slot
       end
 
       private
 
-        attr_reader :job
+      attr_reader :job
 
-        # Try to create the semaphore with value=1 (one slot in use).
-        def attempt_creation
-          lim = limit
-          if Semaphore.create_unique_by(key: key, value: 1, limit: lim, expires_at: expires_at)
-            true
-          else
-            # Race: someone else created it first — try to acquire from existing
-            sem = Semaphore.where(key: key).first
-            return false unless sem
-            attempt_acquire(sem.id, sem.limit)
-          end
+      # Try to create the semaphore with value=1 (one slot in use).
+      def attempt_creation
+        lim = limit
+        if Semaphore.create_unique_by(key: key, value: 1, limit: lim, expires_at: expires_at)
+          true
+        else
+          # Race: someone else created it first — try to acquire from existing
+          sem = Semaphore.where(key: key).first
+          return false unless sem
+          attempt_acquire(sem.id, sem.limit)
         end
+      end
 
-        # Atomically increment value if currently < limit.
-        def attempt_acquire(semaphore_id, lim)
-          result = Semaphore.collection.find_one_and_update(
-            { _id: semaphore_id, "value" => { "$lt" => lim } },
-            { "$inc" => { "value" => 1 }, "$set" => { "expires_at" => expires_at } },
-            return_document: :after
-          )
-          result.present?
-        end
+      # Atomically increment value if currently < limit.
+      def attempt_acquire(semaphore_id, lim)
+        result = Semaphore.collection.find_one_and_update(
+          { _id: semaphore_id, "value" => { "$lt" => lim } },
+          { "$inc" => { "value" => 1 }, "$set" => { "expires_at" => expires_at } },
+          return_document: :after
+        )
+        result.present?
+      end
 
-        # Unconditionally increment value (signal/release).
-        def attempt_increment
-          result = Semaphore.collection.find_one_and_update(
-            { "key" => key },
-            { "$inc" => { "value" => 1 }, "$set" => { "expires_at" => expires_at } },
-            return_document: :after
-          )
-          result.present?
-        end
+      # Atomically decrement value if currently > 0 (release one used slot).
+      def attempt_release_slot
+        result = Semaphore.collection.find_one_and_update(
+          { "key" => key, "value" => { "$gt" => 0 } },
+          { "$inc" => { "value" => -1 }, "$set" => { "expires_at" => expires_at } },
+          return_document: :after
+        )
+        result.present?
+      end
 
-        def key
-          job.concurrency_key
-        end
+      def key
+        job.concurrency_key
+      end
 
-        def expires_at
-          job.respond_to?(:concurrency_duration) ? job.concurrency_duration.from_now : 5.minutes.from_now
-        end
+      def expires_at
+        job.respond_to?(:concurrency_duration) ? job.concurrency_duration.from_now : 5.minutes.from_now
+      end
 
-        def limit
-          (job.respond_to?(:concurrency_limit) ? job.concurrency_limit : nil) || 1
-        end
+      def limit
+        (job.respond_to?(:concurrency_limit) ? job.concurrency_limit : nil) || 1
+      end
     end
   end
 end

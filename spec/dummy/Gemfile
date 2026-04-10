@@ -1,0 +1,5 @@
+# frozen_string_literal: true
+
+# The dummy app uses the parent gem's bundle — do not add gems here.
+# Run `bundle install` from the repo root, not from this directory.
+eval_gemfile File.expand_path("../../Gemfile", __dir__)

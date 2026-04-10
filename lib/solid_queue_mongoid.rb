@@ -39,10 +39,8 @@ module SolidQueueMongoid
       SolidQueue::RecurringExecution,
       SolidQueue::Process,
       SolidQueue::Pause,
-      SolidQueue::Queue,
       SolidQueue::Semaphore,
       SolidQueue::RecurringTask
-      # Queue is now a Mongoid-backed model
     ]
   end
 end
@@ -130,3 +128,9 @@ require_relative "solid_queue_mongoid/models/process"
 require_relative "solid_queue_mongoid/models/pause"
 require_relative "solid_queue_mongoid/models/queue"
 require_relative "solid_queue_mongoid/models/queue_selector"
+
+# Pull in SolidQueue's runtime (engine, workers, dispatcher, etc.) after our
+# Mongoid models are defined so they claim the SolidQueue::* namespace first.
+# SolidQueue's AR model files live in app/models/ which is never required by
+# solid_queue.rb itself — they're Rails-autoloaded and blocked by our Railtie.
+require "solid_queue"

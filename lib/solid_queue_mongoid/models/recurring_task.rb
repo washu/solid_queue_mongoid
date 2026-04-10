@@ -4,15 +4,15 @@ require "fugit"
 
 module SolidQueue
   class RecurringTask < Record
-    field :key,         type: String
-    field :schedule,    type: String
-    field :command,     type: String
-    field :class_name,  type: String
-    field :arguments,   type: Array, default: []
-    field :queue_name,  type: String
-    field :priority,    type: Integer, default: 0
+    field :key, type: String
+    field :schedule, type: String
+    field :command, type: String
+    field :class_name, type: String
+    field :arguments, type: Array, default: []
+    field :queue_name, type: String
+    field :priority, type: Integer, default: 0
     field :description, type: String
-    field :static,      type: Boolean, default: false
+    field :static, type: Boolean, default: false
 
     index({ key: 1 }, { unique: true })
 
@@ -36,15 +36,15 @@ module SolidQueue
 
       def from_configuration(key, **options)
         new(
-          key:         key,
-          class_name:  options[:class],
-          command:     options[:command],
-          arguments:   Array(options[:args]),
-          schedule:    options[:schedule],
-          queue_name:  options[:queue].presence,
-          priority:    options[:priority].presence,
+          key: key,
+          class_name: options[:class],
+          command: options[:command],
+          arguments: Array(options[:args]),
+          schedule: options[:schedule],
+          queue_name: options[:queue].presence,
+          priority: options[:priority].presence,
           description: options[:description],
-          static:      true
+          static: true
         )
       end
 
@@ -74,25 +74,21 @@ module SolidQueue
     end
 
     def last_enqueued_time
-      if recurring_executions.loaded?
-        recurring_executions.map(&:run_at).max
-      else
-        recurring_executions.maximum(:run_at)
-      end
+      recurring_executions.maximum(:run_at)
     end
 
     def enqueue(at:)
       SolidQueue.instrument(:enqueue_recurring_task, task: key, at: at) do |payload|
         active_job = if using_solid_queue_adapter?
-          enqueue_and_record(run_at: at)
-        else
-          payload[:other_adapter] = true
-          perform_later.tap do |job|
-            unless job.successfully_enqueued?
-              payload[:enqueue_error] = job.enqueue_error&.message
-            end
-          end
-        end
+                       enqueue_and_record(run_at: at)
+                     else
+                       payload[:other_adapter] = true
+                       perform_later.tap do |job|
+                         unless job.successfully_enqueued?
+                           payload[:enqueue_error] = job.enqueue_error&.message
+                         end
+                       end
+                     end
 
         active_job.tap do |enqueued_job|
           payload[:active_job_id] = enqueued_job.job_id if enqueued_job
@@ -118,68 +114,67 @@ module SolidQueue
 
     private
 
-      def ensure_schedule_supported
-        unless parsed_schedule.instance_of?(Fugit::Cron)
-          errors.add :schedule, :unsupported, message: "is not a supported recurring schedule"
-        end
-      rescue ArgumentError => error
-        message = if error.message.include?("multiple crons")
-          "generates multiple cron schedules. Please use separate recurring tasks for each schedule, " \
-          "or use explicit cron syntax (e.g., '40 0,15 * * *' for multiple times with the same minutes)"
-        else
-          error.message
-        end
-        errors.add :schedule, :unsupported, message: message
+    def ensure_schedule_supported
+      unless parsed_schedule.instance_of?(Fugit::Cron)
+        errors.add :schedule, :unsupported, message: "is not a supported recurring schedule"
       end
+    rescue ArgumentError => error
+      message = if error.message.include?("multiple crons")
+                  "generates multiple cron schedules. Please use separate recurring tasks for each schedule, " \
+                    "or use explicit cron syntax (e.g., '40 0,15 * * *' for multiple times with the same minutes)"
+                else
+                  error.message
+                end
+      errors.add :schedule, :unsupported, message: message
+    end
 
-      def ensure_command_or_class_present
-        unless command.present? || class_name.present?
-          errors.add :base, :command_and_class_blank, message: "either command or class must be present"
-        end
+    def ensure_command_or_class_present
+      unless command.present? || class_name.present?
+        errors.add :base, :command_and_class_blank, message: "either command or class must be present"
       end
+    end
 
+    def using_solid_queue_adapter?
+      job_class.respond_to?(:queue_adapter_name) &&
+        job_class.queue_adapter_name.inquiry.solid_queue?
+    end
 
-      def using_solid_queue_adapter?
-        job_class.respond_to?(:queue_adapter_name) &&
-          job_class.queue_adapter_name.inquiry.solid_queue?
-      end
-
-      def enqueue_and_record(run_at:)
-        RecurringExecution.record(key, run_at) do
-          job_class.new(*arguments_with_kwargs).set(enqueue_options).tap do |active_job|
-            active_job.run_callbacks(:enqueue) do
-              Job.enqueue(active_job)
-            end
+    def enqueue_and_record(run_at:)
+      RecurringExecution.record(key, run_at) do
+        job_class.new(*arguments_with_kwargs).set(enqueue_options).tap do |active_job|
+          active_job.run_callbacks(:enqueue) do
+            Job.enqueue(active_job)
           end
         end
       end
+    end
 
-      def perform_later
-        job_class.new(*arguments_with_kwargs).tap do |active_job|
-          active_job.enqueue(enqueue_options)
-        end
+    def perform_later
+      job_class.new(*arguments_with_kwargs).tap do |active_job|
+        active_job.enqueue(enqueue_options)
       end
+    end
 
-      def arguments_with_kwargs
-        if class_name.nil?
-          command
-        elsif arguments.last.is_a?(Hash)
-          arguments[0...-1] + [Hash.ruby2_keywords_hash(arguments.last)]
-        else
-          arguments
-        end
+    def arguments_with_kwargs
+      if class_name.nil?
+        command
+      elsif arguments.last.is_a?(Hash)
+        arguments[0...-1] + [Hash.ruby2_keywords_hash(arguments.last)]
+      else
+        arguments
       end
+    end
 
-      def parsed_schedule
-        @parsed_schedule ||= Fugit.parse(schedule, multi: :fail)
-      end
+    def parsed_schedule
+      @parsed_schedule ||= Fugit.parse(schedule, multi: :fail)
+    end
 
-      def job_class
-        @job_class ||= class_name.present? ? class_name.safe_constantize : self.class.default_job_class
-      end
+    def job_class
+      @job_class ||= class_name.present? ? class_name.safe_constantize : self.class.default_job_class
+    end
 
-      def enqueue_options
-        { queue: queue_name, priority: priority }.compact
-      end
+    def enqueue_options
+      { queue: queue_name, priority: priority }.compact
+    end
   end
 end

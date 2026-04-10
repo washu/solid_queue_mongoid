@@ -2,7 +2,7 @@
 
 module SolidQueue
   class ReadyExecution < Execution
-    assumes_attributes_from_job  # inherits queue_name and priority
+    assumes_attributes_from_job # inherits queue_name and priority
 
     scope :queued_as, ->(queue_name) { where(queue_name: queue_name) }
 
@@ -32,38 +32,38 @@ module SolidQueue
 
       private
 
-        # Atomically remove a ReadyExecution and create a ClaimedExecution.
-        # Uses findOneAndDelete for each slot to guarantee no double-claim.
-        def select_and_lock(queue_relation, process_id, limit)
-          return [] if limit <= 0
+      # Atomically remove a ReadyExecution and create a ClaimedExecution.
+      # Uses findOneAndDelete for each slot to guarantee no double-claim.
+      def select_and_lock(queue_relation, process_id, limit)
+        return [] if limit <= 0
 
-          claimed = []
-          ClaimedExecution.claiming(
-            select_candidates(queue_relation, limit),
-            process_id
-          ) do |claimed_set|
-            claimed = claimed_set
-          end
-          claimed
+        claimed = []
+        ClaimedExecution.claiming(
+          select_candidates(queue_relation, limit),
+          process_id
+        ) do |claimed_set|
+          claimed = claimed_set
         end
+        claimed
+      end
 
-        def select_candidates(queue_relation, limit)
-          job_ids = []
-          limit.times do
-            raw = queue_relation.collection.find_one_and_delete(
-              queue_relation.selector,
-              sort: { "priority" => -1, "created_at" => 1 }
-            )
-            break unless raw
-            job_ids << raw["job_id"]
-          end
-          job_ids
+      def select_candidates(queue_relation, limit)
+        job_ids = []
+        limit.times do
+          raw = queue_relation.collection.find_one_and_delete(
+            queue_relation.selector,
+            sort: { "priority" => -1, "created_at" => 1 }
+          )
+          break unless raw
+          job_ids << raw["job_id"]
         end
+        job_ids
+      end
 
-        def discard_jobs(job_ids)
-          Job.release_all_concurrency_locks(Job.where(:id.in => job_ids).to_a)
-          Job.where(:id.in => job_ids).delete_all
-        end
+      def discard_jobs(job_ids)
+        Job.release_all_concurrency_locks(Job.where(:id.in => job_ids).to_a)
+        Job.where(:id.in => job_ids).delete_all
+      end
     end
   end
 end
