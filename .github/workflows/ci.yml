@@ -96,4 +96,4 @@ jobs:
         gem install bundler
         bundle install
         echo "Checking Rails 8 compatibility..."
-        bundle exec ruby -e "require 'solid_queue_mongoid'; puts SolidQueue::VERSION"
+        bundle exec ruby -e "require 'rails'; require 'solid_queue_mongoid'; puts SolidQueue::VERSION"
