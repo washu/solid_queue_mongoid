@@ -17,3 +17,4 @@
 /spec/dummy/storage/
 /spec/dummy/.kamal/
 /spec/dummy/Gemfile.lock
+/solid_queue_mongoid-0.3.0.gem
