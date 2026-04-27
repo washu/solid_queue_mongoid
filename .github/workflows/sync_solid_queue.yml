@@ -148,8 +148,13 @@ jobs:
           NEW_TAG="${{ steps.upstream.outputs.latest_tag }}"
           TITLE="chore: solid_queue ${OLD_TAG} → ${NEW_TAG} — update Mongoid models for upstream changes"
 
-          gh issue create \
+          ISSUE_URL=$(gh issue create \
             --title "$TITLE" \
             --body-file /tmp/issue_body.md \
-            --label "upstream-sync" \
-            --assignee "Copilot"
+            --label "upstream-sync")
+
+          echo "Issue created: ${ISSUE_URL}"
+
+          # Mention @copilot in a comment to trigger the Copilot coding agent
+          gh issue comment "$ISSUE_URL" --body \
+            "@copilot Please review the upstream diff above and update the corresponding Mongoid models in \`lib/solid_queue_mongoid/models/\` to reflect any behavioural changes. Do not copy ActiveRecord patterns directly — adapt them to Mongoid conventions used in this gem."
