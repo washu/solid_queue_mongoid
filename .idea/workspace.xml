@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="added github workflow to kep moesl in sync as pr requests" />
+    <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="added github workflow to kep moesl in sync as pr requests">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -178,7 +180,7 @@
       <workItem from="1775756584942" duration="17331000" />
       <workItem from="1775842470364" duration="3731000" />
       <workItem from="1775988596194" duration="264000" />
-      <workItem from="1777309855956" duration="3544000" />
+      <workItem from="1777309855956" duration="4652000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit udpate">
       <option name="closed" value="true" />
@@ -364,7 +366,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777314543813</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="added github workflow to kep moesl in sync as pr requests">
+      <option name="closed" value="true" />
+      <created>1777314800011</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1777314800011</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
