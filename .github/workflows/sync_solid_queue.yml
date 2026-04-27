@@ -13,7 +13,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+  issues: write
 
 jobs:
   check-upstream:
@@ -59,28 +59,27 @@ jobs:
             echo "proceed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # ── Check if a PR branch already exists ───────────────────────────────
-      - name: Check for existing sync branch
-        id: branch_check
+      # ── Check if an issue for this version already exists ─────────────────
+      - name: Check for existing sync issue
+        id: issue_check
         if: steps.needs_update.outputs.proceed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ steps.upstream.outputs.latest_tag }}"
-          BRANCH="solid-queue-sync/${TAG}"
-          if git ls-remote --exit-code --heads origin "refs/heads/${BRANCH}" > /dev/null 2>&1; then
-            echo "Branch ${BRANCH} already exists. Skipping PR creation."
-            echo "branch_exists=true" >> "$GITHUB_OUTPUT"
+          EXISTING=$(gh issue list --label "upstream-sync" --state open --search "$TAG" --json number -q '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            echo "Open issue #${EXISTING} already exists for ${TAG}. Skipping."
+            echo "issue_exists=true" >> "$GITHUB_OUTPUT"
           else
-            echo "branch_exists=false" >> "$GITHUB_OUTPUT"
+            echo "issue_exists=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
 
       # ── Set up Ruby for the comparison script ─────────────────────────────
       - name: Set up Ruby
         if: |
           steps.needs_update.outputs.proceed == 'true' &&
-          steps.branch_check.outputs.branch_exists == 'false'
+          steps.issue_check.outputs.issue_exists == 'false'
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
@@ -89,7 +88,7 @@ jobs:
       - name: Compare models
         if: |
           steps.needs_update.outputs.proceed == 'true' &&
-          steps.branch_check.outputs.branch_exists == 'false'
+          steps.issue_check.outputs.issue_exists == 'false'
         id: compare
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -97,70 +96,46 @@ jobs:
           OLD_TAG="${{ steps.last_version.outputs.last_tag }}"
           NEW_TAG="${{ steps.upstream.outputs.latest_tag }}"
           # Compare upstream old tag vs new tag — NOT vs our local models
-          ruby .github/scripts/compare_models.rb "$OLD_TAG" "$NEW_TAG" > /tmp/pr_body.md
-          echo "pr_body_path=/tmp/pr_body.md" >> "$GITHUB_OUTPUT"
-          echo "--- PR Body Preview ---"
-          cat /tmp/pr_body.md
+          ruby .github/scripts/compare_models.rb "$OLD_TAG" "$NEW_TAG" > /tmp/issue_body.md
+          echo "--- Issue Body Preview ---"
+          cat /tmp/issue_body.md
 
-      # ── Create branch, update version file, open PR ───────────────────────
-      - name: Create sync branch and PR
+      # ── Always bump version tracking on default branch ───────────────────
+      - name: Update version tracking file
         if: |
           steps.needs_update.outputs.proceed == 'true' &&
-          steps.branch_check.outputs.branch_exists == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          steps.issue_check.outputs.issue_exists == 'false' &&
+          steps.compare.conclusion == 'success'
         run: |
           TAG="${{ steps.upstream.outputs.latest_tag }}"
-          BRANCH="${{ steps.branch_check.outputs.branch }}"
-
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git checkout -b "$BRANCH"
-
-          # Update version tracking file
           echo "$TAG" > .github/last_checked_solid_queue_version
           git add .github/last_checked_solid_queue_version
-          git commit -m "chore: track solid_queue upstream version ${TAG}"
+          git diff --cached --quiet || git commit -m "chore: track solid_queue upstream version ${TAG}"
+          git push origin HEAD
 
-          git push origin "$BRANCH"
-
-          # Determine PR title
-          OLD_TAG="${{ steps.last_version.outputs.last_tag }}"
-          PR_TITLE="chore: solid_queue ${OLD_TAG} → ${TAG} — review upstream model changes"
-
-          gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "$PR_TITLE" \
-            --body-file /tmp/pr_body.md \
-            --label "upstream-sync" || \
-          gh pr create \
-            --base master \
-            --head "$BRANCH" \
-            --title "$PR_TITLE" \
-            --body-file /tmp/pr_body.md \
-            --label "upstream-sync"
-
-      # ── If no changes needed, still bump version tracking on main ─────────
-      - name: Update version tracking (no PR needed)
+      # ── Create issue and assign to Copilot if there are model changes ─────
+      - name: Create Copilot issue for model changes
         if: |
           steps.needs_update.outputs.proceed == 'true' &&
-          steps.branch_check.outputs.branch_exists == 'false' &&
+          steps.issue_check.outputs.issue_exists == 'false' &&
           steps.compare.conclusion == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Check if PR body indicates no changes
-          if grep -q "No model changes detected" /tmp/pr_body.md; then
-            TAG="${{ steps.upstream.outputs.latest_tag }}"
-            git config user.name  "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            # If we're still on the sync branch, switch back and update main directly
-            git checkout main 2>/dev/null || git checkout master
-            echo "$TAG" > .github/last_checked_solid_queue_version
-            git add .github/last_checked_solid_queue_version
-            git commit -m "chore: track solid_queue upstream version ${TAG} (no model changes)" || true
-            git push origin HEAD
+          # Only open an issue if there are actual upstream model changes
+          if grep -q "No model changes detected" /tmp/issue_body.md; then
+            echo "No model changes — skipping issue creation."
+            exit 0
           fi
 
+          OLD_TAG="${{ steps.last_version.outputs.last_tag }}"
+          NEW_TAG="${{ steps.upstream.outputs.latest_tag }}"
+          TITLE="chore: solid_queue ${OLD_TAG} → ${NEW_TAG} — update Mongoid models for upstream changes"
+
+          gh issue create \
+            --title "$TITLE" \
+            --body-file /tmp/issue_body.md \
+            --label "upstream-sync" \
+            --assignee "Copilot"
