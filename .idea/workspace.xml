@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="fixed rubcop checks">
-      <change afterPath="$PROJECT_DIR$/release.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="0db87873-4844-479c-9630-707075e3936d" name="Changes" comment="aded release script">
+      <change afterPath="$PROJECT_DIR$/.github/last_checked_solid_queue_version" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.github/scripts/compare_models.rb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.github/workflows/sync_solid_queue.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -29,7 +30,7 @@
     </selectedModels>
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="11744" />
+    <option name="cachedIndexableFilesCount" value="11746" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
@@ -74,7 +75,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.lang.ruby.rbs.tools.collection.workspace.sync.RbsCollectionUpdateProjectActivity#LAST_UPDATE_TIMESTAMP": "1775988654904",
+    "com.intellij.lang.ruby.rbs.tools.collection.workspace.sync.RbsCollectionUpdateProjectActivity#LAST_UPDATE_TIMESTAMP": "1777309914837",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
     "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
@@ -181,7 +182,8 @@
       <workItem from="1774875815039" duration="26961000" />
       <workItem from="1775756584942" duration="17331000" />
       <workItem from="1775842470364" duration="3731000" />
-      <workItem from="1775988596194" duration="179000" />
+      <workItem from="1775988596194" duration="264000" />
+      <workItem from="1777309855956" duration="1426000" />
     </task>
     <task id="LOCAL-00001" summary="initial commit udpate">
       <option name="closed" value="true" />
@@ -303,7 +305,15 @@
       <option name="project" value="LOCAL" />
       <updated>1775847637059</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="aded release script">
+      <option name="closed" value="true" />
+      <created>1775988855889</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1775988855889</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -332,7 +342,8 @@
     <MESSAGE value="0.2.0 commit, see README and CHANGELOG" />
     <MESSAGE value="CI fixes" />
     <MESSAGE value="fixed rubcop checks" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed rubcop checks" />
+    <MESSAGE value="aded release script" />
+    <option name="LAST_COMMIT_MESSAGE" value="aded release script" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
