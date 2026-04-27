@@ -1,0 +1,163 @@
+name: Monitor solid_queue Upstream
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      force_tag:
+        description: "Override solid_queue tag to compare against (e.g. v1.5.0). Leave blank to use latest."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-upstream:
+    name: Check for new solid_queue release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Determine latest solid_queue release ──────────────────────────────
+      - name: Get latest solid_queue release
+        id: upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "${{ github.event.inputs.force_tag }}" ]; then
+            LATEST_TAG="${{ github.event.inputs.force_tag }}"
+          else
+            LATEST_TAG=$(gh release view --repo rails/solid_queue --json tagName -q '.tagName')
+          fi
+          echo "latest_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Upstream latest tag: ${LATEST_TAG}"
+
+      # ── Compare with last processed version ───────────────────────────────
+      - name: Read last checked version
+        id: last_version
+        run: |
+          LAST=$(cat .github/last_checked_solid_queue_version | tr -d '[:space:]')
+          echo "last_tag=${LAST}" >> "$GITHUB_OUTPUT"
+          echo "Last checked tag: ${LAST}"
+
+      - name: Check if update is needed
+        id: needs_update
+        run: |
+          LATEST="${{ steps.upstream.outputs.latest_tag }}"
+          LAST="${{ steps.last_version.outputs.last_tag }}"
+          if [ "$LATEST" = "$LAST" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "No new release. Skipping."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New release detected: ${LATEST} (last checked: ${LAST})"
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Check if a PR branch already exists ───────────────────────────────
+      - name: Check for existing sync branch
+        id: branch_check
+        if: steps.needs_update.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.upstream.outputs.latest_tag }}"
+          BRANCH="solid-queue-sync/${TAG}"
+          if git ls-remote --exit-code --heads origin "refs/heads/${BRANCH}" > /dev/null 2>&1; then
+            echo "Branch ${BRANCH} already exists. Skipping PR creation."
+            echo "branch_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+
+      # ── Set up Ruby for the comparison script ─────────────────────────────
+      - name: Set up Ruby
+        if: |
+          steps.needs_update.outputs.proceed == 'true' &&
+          steps.branch_check.outputs.branch_exists == 'false'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      # ── Run comparison script ─────────────────────────────────────────────
+      - name: Compare models
+        if: |
+          steps.needs_update.outputs.proceed == 'true' &&
+          steps.branch_check.outputs.branch_exists == 'false'
+        id: compare
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.upstream.outputs.latest_tag }}"
+          ruby .github/scripts/compare_models.rb "$TAG" > /tmp/pr_body.md
+          echo "pr_body_path=/tmp/pr_body.md" >> "$GITHUB_OUTPUT"
+          echo "--- PR Body Preview ---"
+          cat /tmp/pr_body.md
+
+      # ── Create branch, update version file, open PR ───────────────────────
+      - name: Create sync branch and PR
+        if: |
+          steps.needs_update.outputs.proceed == 'true' &&
+          steps.branch_check.outputs.branch_exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.upstream.outputs.latest_tag }}"
+          BRANCH="${{ steps.branch_check.outputs.branch }}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+
+          # Update version tracking file
+          echo "$TAG" > .github/last_checked_solid_queue_version
+          git add .github/last_checked_solid_queue_version
+          git commit -m "chore: track solid_queue upstream version ${TAG}"
+
+          git push origin "$BRANCH"
+
+          # Determine PR title
+          PR_TITLE="chore: sync with solid_queue ${TAG} — review model changes"
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "$PR_TITLE" \
+            --body-file /tmp/pr_body.md \
+            --label "upstream-sync" || \
+          gh pr create \
+            --base master \
+            --head "$BRANCH" \
+            --title "$PR_TITLE" \
+            --body-file /tmp/pr_body.md \
+            --label "upstream-sync"
+
+      # ── If no changes needed, still bump version tracking on main ─────────
+      - name: Update version tracking (no PR needed)
+        if: |
+          steps.needs_update.outputs.proceed == 'true' &&
+          steps.branch_check.outputs.branch_exists == 'false' &&
+          steps.compare.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR body indicates no changes
+          if grep -q "No model changes detected" /tmp/pr_body.md; then
+            TAG="${{ steps.upstream.outputs.latest_tag }}"
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            # If we're still on the sync branch, switch back and update main directly
+            git checkout main 2>/dev/null || git checkout master
+            echo "$TAG" > .github/last_checked_solid_queue_version
+            git add .github/last_checked_solid_queue_version
+            git commit -m "chore: track solid_queue upstream version ${TAG} (no model changes)" || true
+            git push origin HEAD
+          fi
+
