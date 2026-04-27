@@ -139,7 +139,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Only open an issue if there are actual upstream model changes
-          if grep -q "No model changes detected" /tmp/issue_body.md; then
+          if grep -q "No model file changes detected" /tmp/issue_body.md; then
             echo "No model changes — skipping issue creation."
             exit 0
           fi
