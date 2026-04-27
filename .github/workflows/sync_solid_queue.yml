@@ -94,8 +94,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ steps.upstream.outputs.latest_tag }}"
-          ruby .github/scripts/compare_models.rb "$TAG" > /tmp/pr_body.md
+          OLD_TAG="${{ steps.last_version.outputs.last_tag }}"
+          NEW_TAG="${{ steps.upstream.outputs.latest_tag }}"
+          # Compare upstream old tag vs new tag — NOT vs our local models
+          ruby .github/scripts/compare_models.rb "$OLD_TAG" "$NEW_TAG" > /tmp/pr_body.md
           echo "pr_body_path=/tmp/pr_body.md" >> "$GITHUB_OUTPUT"
           echo "--- PR Body Preview ---"
           cat /tmp/pr_body.md
@@ -124,7 +126,8 @@ jobs:
           git push origin "$BRANCH"
 
           # Determine PR title
-          PR_TITLE="chore: sync with solid_queue ${TAG} — review model changes"
+          OLD_TAG="${{ steps.last_version.outputs.last_tag }}"
+          PR_TITLE="chore: solid_queue ${OLD_TAG} → ${TAG} — review upstream model changes"
 
           gh pr create \
             --base main \

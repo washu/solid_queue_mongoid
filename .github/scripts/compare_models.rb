@@ -1,32 +1,31 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# compare_models.rb <solid_queue_tag>
+# compare_models.rb <old_tag> <new_tag>
 #
-# Fetches solid_queue model files at a given tag from GitHub and diffs them
-# against the local Mongoid equivalents in lib/solid_queue_mongoid/models/.
-# Outputs a Markdown report to STDOUT.
+# Diffs solid_queue model files between two upstream tags (old vs new).
+# For each file that changed upstream, also shows the local Mongoid equivalent
+# so developers can decide if a corresponding change is needed.
+#
+# Outputs a Markdown PR body to STDOUT.
 
 require "net/http"
 require "json"
 require "tmpdir"
-require "fileutils"
 
-TAG = ARGV[0] || abort("Usage: compare_models.rb <tag>")
+OLD_TAG = ARGV[0] || abort("Usage: compare_models.rb <old_tag> <new_tag>")
+NEW_TAG = ARGV[1] || abort("Usage: compare_models.rb <old_tag> <new_tag>")
+
 UPSTREAM_REPO = "rails/solid_queue"
-UPSTREAM_BASE  = "app/models/solid_queue"
-LOCAL_BASE     = File.expand_path("../../lib/solid_queue_mongoid/models", __dir__)
-
-# Map upstream path (relative to app/models/solid_queue) -> local path (relative to lib/solid_queue_mongoid/models)
-# They share the same names so the mapping is 1:1 for direct files.
-# Sub-directories are also 1:1.
+UPSTREAM_BASE = "app/models/solid_queue"
+LOCAL_BASE    = File.expand_path("../../lib/solid_queue_mongoid/models", __dir__)
 
 def github_api(path)
   uri = URI("https://api.github.com/#{path}")
   req = Net::HTTP::Get.new(uri)
-  req["Accept"] = "application/vnd.github+json"
+  req["Accept"]               = "application/vnd.github+json"
   req["X-GitHub-Api-Version"] = "2022-11-28"
-  req["Authorization"] = "Bearer #{ENV['GITHUB_TOKEN']}" if ENV["GITHUB_TOKEN"]
+  req["Authorization"]        = "Bearer #{ENV['GITHUB_TOKEN']}" if ENV["GITHUB_TOKEN"]
   resp = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |h| h.request(req) }
   JSON.parse(resp.body)
 end
@@ -36,12 +35,12 @@ def raw_content(path, ref)
   req = Net::HTTP::Get.new(uri)
   req["Authorization"] = "Bearer #{ENV['GITHUB_TOKEN']}" if ENV["GITHUB_TOKEN"]
   resp = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |h| h.request(req) }
-  resp.body
+  resp.code == "200" ? resp.body : nil
 end
 
-# Recursively collect all .rb files in upstream directory at given ref
 def collect_upstream_files(dir_path, ref)
   entries = github_api("repos/#{UPSTREAM_REPO}/contents/#{dir_path}?ref=#{ref}")
+  return [] unless entries.is_a?(Array)
   files = []
   entries.each do |entry|
     case entry["type"]
@@ -53,44 +52,55 @@ def collect_upstream_files(dir_path, ref)
   end
   files
 rescue => e
-  warn "Warning: could not list #{dir_path}: #{e.message}"
+  warn "Warning: could not list #{dir_path} at #{ref}: #{e.message}"
   []
 end
 
-puts "Fetching upstream file list for #{TAG}..."
-upstream_files = collect_upstream_files(UPSTREAM_BASE, TAG)
+$stderr.puts "Fetching upstream file list for #{OLD_TAG} and #{NEW_TAG}..."
 
-results = { modified: [], new_upstream: [], missing_local: [] }
+old_files = collect_upstream_files(UPSTREAM_BASE, OLD_TAG)
+new_files = collect_upstream_files(UPSTREAM_BASE, NEW_TAG)
+
+all_relative = (old_files + new_files)
+                 .map { |f| f.delete_prefix("#{UPSTREAM_BASE}/") }
+                 .uniq
+                 .sort
+
+results = { modified: [], added: [], removed: [] }
 diffs   = {}
 
-Dir.mktmpdir("solid_queue_compare") do |tmpdir|
-  upstream_files.each do |upstream_path|
-    # Convert upstream path to local relative path
-    relative = upstream_path.delete_prefix("#{UPSTREAM_BASE}/")
-    local_path = File.join(LOCAL_BASE, relative)
+Dir.mktmpdir("sqm_compare") do |tmpdir|
+  all_relative.each do |relative|
+    old_upstream_path = "#{UPSTREAM_BASE}/#{relative}"
+    new_upstream_path = "#{UPSTREAM_BASE}/#{relative}"
 
-    upstream_content = raw_content(upstream_path, TAG)
-    upstream_tmp = File.join(tmpdir, "upstream_#{relative.gsub('/', '_')}")
-    File.write(upstream_tmp, upstream_content)
+    in_old = old_files.include?(old_upstream_path)
+    in_new = new_files.include?(new_upstream_path)
 
-    if File.exist?(local_path)
-      diff_out = `diff -u "#{local_path}" "#{upstream_tmp}" 2>&1`
-      unless diff_out.empty?
-        results[:modified] << relative
-        diffs[relative] = diff_out
-      end
-    else
-      results[:new_upstream] << relative
-      diffs[relative] = upstream_content
-    end
-  end
+    if in_old && in_new
+      old_content = raw_content(old_upstream_path, OLD_TAG)
+      new_content = raw_content(new_upstream_path, NEW_TAG)
 
-  # Check for local files that no longer exist upstream
-  Dir.glob("#{LOCAL_BASE}/**/*.rb").each do |local_path|
-    relative = local_path.delete_prefix("#{LOCAL_BASE}/")
-    upstream_path = "#{UPSTREAM_BASE}/#{relative}"
-    unless upstream_files.include?(upstream_path)
-      results[:missing_local] << relative
+      next if old_content.nil? || new_content.nil?
+      next if old_content == new_content  # unchanged — skip entirely
+
+      old_tmp = File.join(tmpdir, "old_#{relative.gsub('/', '__')}")
+      new_tmp = File.join(tmpdir, "new_#{relative.gsub('/', '__')}")
+      File.write(old_tmp, old_content)
+      File.write(new_tmp, new_content)
+
+      diff = `diff -u --label "solid_queue@#{OLD_TAG}/#{relative}" --label "solid_queue@#{NEW_TAG}/#{relative}" "#{old_tmp}" "#{new_tmp}" 2>&1`
+      results[:modified] << relative
+      diffs[relative] = { status: :modified, upstream_diff: diff }
+
+    elsif in_new && !in_old
+      new_content = raw_content(new_upstream_path, NEW_TAG)
+      results[:added] << relative
+      diffs[relative] = { status: :added, upstream_diff: new_content.to_s }
+
+    elsif in_old && !in_new
+      results[:removed] << relative
+      diffs[relative] = { status: :removed, upstream_diff: nil }
     end
   end
 end
@@ -98,44 +108,80 @@ end
 # ── Generate Markdown report ──────────────────────────────────────────────────
 
 lines = []
-lines << "## solid_queue `#{TAG}` — Model Diff Analysis"
+lines << "## solid_queue `#{NEW_TAG}` — Upstream Model Changes"
 lines << ""
-lines << "This PR was automatically generated by comparing upstream `rails/solid_queue` model files"
-lines << "at tag `#{TAG}` against the Mongoid equivalents in `lib/solid_queue_mongoid/models/`."
+lines << "Comparing `rails/solid_queue` models between `#{OLD_TAG}` → `#{NEW_TAG}`."
+lines << "Each section shows **what changed upstream** alongside **our current Mongoid model** for context."
+lines << "Review each diff and decide if the corresponding Mongoid model needs updating."
 lines << ""
 
-total_changes = results[:modified].size + results[:new_upstream].size + results[:missing_local].size
-if total_changes.zero?
-  lines << "> ✅ No model changes detected. Only the version tracking file has been updated."
+total = results.values.sum(&:size)
+
+if total.zero?
+  lines << "> ✅ No model file changes detected between `#{OLD_TAG}` and `#{NEW_TAG}`. No action needed."
 else
   lines << "### Summary"
   lines << ""
-  lines << "| File | Status |"
-  lines << "|------|--------|"
-  results[:modified].each      { |f| lines << "| `#{f}` | 🔄 Modified upstream |" }
-  results[:new_upstream].each  { |f| lines << "| `#{f}` | 🆕 New in upstream (no local equivalent) |" }
-  results[:missing_local].each { |f| lines << "| `#{f}` | ⚠️ Exists locally but removed from upstream |" }
+  lines << "| File | Upstream Change |"
+  lines << "|------|-----------------|"
+  results[:modified].each { |f| lines << "| `#{f}` | 🔄 Modified |" }
+  results[:added].each    { |f| lines << "| `#{f}` | 🆕 Added in upstream |" }
+  results[:removed].each  { |f| lines << "| `#{f}` | 🗑️ Removed from upstream |" }
   lines << ""
 
-  unless results[:modified].empty?
-    lines << "### Migration Checklist"
-    lines << ""
-    results[:modified].each      { |f| lines << "- [ ] Review and update `lib/solid_queue_mongoid/models/#{f}`" }
-    results[:new_upstream].each  { |f| lines << "- [ ] Decide whether to add `lib/solid_queue_mongoid/models/#{f}`" }
-    results[:missing_local].each { |f| lines << "- [ ] Decide whether to remove `lib/solid_queue_mongoid/models/#{f}`" }
-    lines << ""
-  end
-
-  lines << "### Diffs"
+  lines << "### Review Checklist"
   lines << ""
-  diffs.each do |relative, diff|
-    status = results[:new_upstream].include?(relative) ? "new upstream file" : "modified"
+  results[:modified].each { |f| lines << "- [ ] `lib/solid_queue_mongoid/models/#{f}` — review upstream changes" }
+  results[:added].each    { |f| lines << "- [ ] `lib/solid_queue_mongoid/models/#{f}` — new upstream file, consider adding" }
+  results[:removed].each  { |f| lines << "- [ ] `lib/solid_queue_mongoid/models/#{f}` — removed upstream, consider removing" }
+  lines << ""
+
+  lines << "---"
+  lines << ""
+  lines << "### Detailed Diffs"
+  lines << ""
+
+  diffs.each do |relative, info|
+    local_path = File.join(LOCAL_BASE, relative)
+    local_content = File.exist?(local_path) ? File.read(local_path) : nil
+
+    status_label = case info[:status]
+                   when :modified then "🔄 Modified upstream"
+                   when :added    then "🆕 New upstream file"
+                   when :removed  then "🗑️ Removed from upstream"
+                   end
+
+    lines << "---"
+    lines << ""
+    lines << "#### `#{relative}` — #{status_label}"
+    lines << ""
+
+    # What changed in upstream
     lines << "<details>"
-    lines << "<summary><code>#{relative}</code> — #{status}</summary>"
+    lines << "<summary>📥 What changed in upstream (#{OLD_TAG} → #{NEW_TAG})</summary>"
     lines << ""
-    lines << "```diff"
-    lines << diff
-    lines << "```"
+    if info[:status] == :removed
+      lines << "_This file was removed from upstream solid_queue._"
+    else
+      lines << "```diff"
+      lines << info[:upstream_diff].to_s.strip
+      lines << "```"
+    end
+    lines << ""
+    lines << "</details>"
+    lines << ""
+
+    # Our current local Mongoid model for reference
+    lines << "<details>"
+    lines << "<summary>📄 Our current Mongoid model — `lib/solid_queue_mongoid/models/#{relative}`</summary>"
+    lines << ""
+    if local_content
+      lines << "```ruby"
+      lines << local_content.strip
+      lines << "```"
+    else
+      lines << "_No local equivalent exists for this file._"
+    end
     lines << ""
     lines << "</details>"
     lines << ""
